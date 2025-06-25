@@ -47,7 +47,7 @@ namespace vks
 		/**
 		* Creates the logical device for the current physical device
 		*/
-		void CreateLogicalDevice();
+		void CreateLogicalDevice(std::vector<const char*> p_validationLayers);
 
 		/**
 		* Returns the logical device associated with this physical device
@@ -55,9 +55,18 @@ namespace vks
 		*/
 		VkDevice GetLogicalDevice();
 
+		/**
+		* Returns the graphics queue associated with this logical device
+		* @note will assert if the device doesn't have a logical device associated
+		*/
+		VkQueue GetGraphicsQueue();
+
 	private:
 		VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+		VkPhysicalDeviceProperties m_physicalDeviceProperties;
+		VkPhysicalDeviceFeatures m_physicalDeviceFeatures;
 		VkDevice m_logicalDevice = VK_NULL_HANDLE;
+		VkQueue m_graphicsQueue;
 		QueueFamilyIndices m_queueFamilyIndices;
 	};
 }

@@ -113,10 +113,13 @@ namespace vks
 
 		m_deviceManager = std::make_unique<utils::DeviceManager>(m_handle);
 		m_device = m_deviceManager->GetSuitableDevice();
+		m_device.value().get().CreateLogicalDevice(validationLayers);
 	}
 
 	Instance::~Instance()
 	{
+		m_deviceManager.reset();
+		m_device.reset();
 		m_debugMessenger.reset();
 		vkDestroyInstance(m_handle, nullptr);
 	}

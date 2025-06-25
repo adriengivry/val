@@ -7,9 +7,10 @@
 #include <vks/utils/ExtensionManager.h>
 #include <vks/utils/ValidationLayerManager.h>
 #include <vks/Device.h>
-#include <stdexcept>
+#include <cassert>
 #include <iostream>
 #include <optional>
+#include <stdexcept>
 
 namespace
 {
@@ -56,11 +57,13 @@ namespace vks
 		m_physicalDevice(p_physicalDevice),
 		m_queueFamilyIndices(FindQueueFamilies(p_physicalDevice))
 	{
+		vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
+		vkGetPhysicalDeviceFeatures(m_physicalDevice, &m_physicalDeviceFeatures);
 	}
 
 	Device::~Device()
 	{
-		
+		vkDestroyDevice(m_logicalDevice, nullptr);
 	}
 
 	bool Device::IsSuitable() const
@@ -70,13 +73,54 @@ namespace vks
 			return false;
 		}
 
-		VkPhysicalDeviceProperties deviceProperties;
-		vkGetPhysicalDeviceProperties(m_physicalDevice, &deviceProperties);
-
-		VkPhysicalDeviceFeatures deviceFeatures;
-		vkGetPhysicalDeviceFeatures(m_physicalDevice, &deviceFeatures);
-
 		// For example, we can require a physical device to be a discrete GPU 
-		return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+		return m_physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+	}
+
+	void Device::CreateLogicalDevice(std::vector<const char*> p_validationLayers)
+	{
+		float queuePriority = 1.0f;
+
+		VkDeviceQueueCreateInfo queueCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily.value(),
+			.queueCount = 1,
+			.pQueuePriorities = &queuePriority
+		};
+
+		VkDeviceCreateInfo createInfo{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+			.queueCreateInfoCount = 1,
+			.pQueueCreateInfos = &queueCreateInfo,
+			.enabledLayerCount = static_cast<uint32_t>(p_validationLayers.size()),
+			.ppEnabledLayerNames = p_validationLayers.data(),
+			.enabledExtensionCount = 0,
+			.ppEnabledExtensionNames = VK_NULL_HANDLE,
+			.pEnabledFeatures = &m_physicalDeviceFeatures,
+		};
+
+		if (vkCreateDevice(
+			m_physicalDevice,
+			&createInfo,
+			nullptr,
+			&m_logicalDevice
+		) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create logical device!");
+		}
+
+		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
+	}
+
+	VkDevice Device::GetLogicalDevice()
+	{
+		assert(m_logicalDevice != VK_NULL_HANDLE);
+		return m_logicalDevice;
+	}
+
+	VkQueue Device::GetGraphicsQueue()
+	{
+		assert(m_logicalDevice != VK_NULL_HANDLE);
+		return m_graphicsQueue;
 	}
 }
