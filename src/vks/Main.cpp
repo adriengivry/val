@@ -38,16 +38,16 @@ int main()
 		requiredExtensions.push_back(glfwExtensions[i]);
 	}
 
+	std::unique_ptr<vks::Instance> instance = std::make_unique<vks::Instance>(
+		vks::InstanceDesc{ requiredExtensions }
+	);
 
+	while (!glfwWindowShouldClose(window))
 	{
-		vks::InstanceDesc instanceDesc{ requiredExtensions };
-		vks::Instance instance(instanceDesc);
-
-		while (!glfwWindowShouldClose(window))
-		{
-			glfwPollEvents();
-		}
+		glfwPollEvents();
 	}
+
+	instance.reset();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
