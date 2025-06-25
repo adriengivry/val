@@ -11,6 +11,7 @@
 #include <span>
 #include <vector>
 #include <vks/DebugMessenger.h>
+#include <vks/utils/DeviceManager.h>
 #include <vulkan/vulkan.h>
 
 namespace vks
@@ -28,7 +29,8 @@ namespace vks
 
 	private:
 		VkInstance m_handle = VK_NULL_HANDLE;
-		VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+		std::unique_ptr<utils::DeviceManager> m_deviceManager;
+		std::optional<std::reference_wrapper<vks::Device>> m_device;
 		std::unique_ptr<DebugMessenger> m_debugMessenger;
 	};
 }
