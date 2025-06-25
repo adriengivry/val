@@ -21,7 +21,13 @@ namespace
 {
 	VkInstance g_instance;
 
-	struct ValidationLayerRequest
+	struct RequestedValidationLayer
+	{
+		std::string name;
+		bool required;
+	};
+
+	struct RequestedExtension
 	{
 		std::string name;
 		bool required;
@@ -45,7 +51,20 @@ namespace
 		return availableLayers;
 	}
 
-	bool isValidationLayerSupported(std::string_view validationLayer, std::span<const VkLayerProperties> supportedValidationLayers)
+	bool isExtensionSupported(const std::string_view extension, std::span<const VkExtensionProperties> supportedExtensions)
+	{
+		for (auto& layer : supportedExtensions)
+		{
+			if (strcmp(layer.extensionName, extension.data()) == 0)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool isValidationLayerSupported(const std::string_view validationLayer, std::span<const VkLayerProperties> supportedValidationLayers)
 	{
 		for (auto& layer : supportedValidationLayers)
 		{
@@ -68,40 +87,78 @@ namespace
 		}
 	}
 
+	void printValidationLayers(std::span<const VkLayerProperties> layers)
+	{
+		std::cout << layers.size() << " available validation layers:\n";
+
+		for (const auto& layer : layers)
+		{
+			std::cout << '\t' << layer.layerName << '\n';
+		}
+	}
+
 	void initVulkan()
 	{
 		// Retrieve Vulkan extensions
-		const auto vkExtensions = getSupportedExtensions();
-		printExtensions(vkExtensions);
+		const auto supportedExtensions = getSupportedExtensions();
+		const auto supportedValidationLayers = getSupportedValidationLayers();
 
-		// VkApplicationInfo is technically optional, but useful to specify info about our app.
-		VkApplicationInfo appInfo{
-			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-			.pNext = VK_NULL_HANDLE, // To pass additionnal information, e.g. for extensions
-			.pApplicationName = "vulkan-sandbox",
-			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-			.pEngineName = "No Engine",
-			.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-			.apiVersion = VK_API_VERSION_1_0
-		};
+		printExtensions(supportedExtensions);
+		printValidationLayers(supportedValidationLayers);
 
-		// Retrieve extensions from GLFW (array of strings)
+		// Retrieve extensions required by GLFW (array of strings)
 		uint32_t glfwExtensionCount = 0;
 		const char** glfwExtensions;
 		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-		std::vector<ValidationLayerRequest> requestedValidationLayers = {
+		std::vector<RequestedExtension> requestedExtensions{
 #ifdef DEBUG
-			{ "VK_LAYER_KHRONOS_validation", false },
+			{ VK_EXT_DEBUG_UTILS_EXTENSION_NAME, true } // Require extension for message callback
 #endif
 		};
 
-		const auto supportedValidationLayers = getSupportedValidationLayers();
+		for (uint32_t i = 0; i < glfwExtensionCount; ++i)
+		{
+			requestedExtensions.push_back(RequestedExtension{
+					.name = glfwExtensions[i],
+					.required = true
+				}
+			);
+		}
+
+		std::vector<const char*> extensions;
+		extensions.reserve(requestedExtensions.size());
+
+		// Filter unsupported extensions
+		for (const auto& extension : requestedExtensions)
+		{
+			if (!isExtensionSupported(extension.name, supportedExtensions))
+			{
+				if (extension.required)
+				{
+					throw std::runtime_error("required extension not supported!");
+				}
+				else
+				{
+					std::cout << "Optional requested extension '" << extension.name << "' isn't supported: skipped\n";
+				}
+			}
+			else
+			{
+				extensions.push_back(extension.name.c_str());
+			}
+		}
+
+		std::vector<RequestedValidationLayer> requestedValidationLayers{
+#ifdef DEBUG
+			{ "VK_LAYER_KHRONOS_validation", false }
+#endif
+		};
 
 		std::vector<const char*> validationLayers;
 		validationLayers.reserve(requestedValidationLayers.size());
 
-		// Iterate over all unsupported validation layers to provide information to the user.
+		// Filter unsupported validation layers
 		for (const auto& layer : requestedValidationLayers)
 		{
 			if (!isValidationLayerSupported(layer.name, supportedValidationLayers))
@@ -121,13 +178,24 @@ namespace
 			}
 		}
 
+		// VkApplicationInfo is technically optional, but useful to specify info about our app.
+		VkApplicationInfo appInfo{
+			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			.pNext = VK_NULL_HANDLE, // To pass additionnal information, e.g. for extensions
+			.pApplicationName = "vulkan-sandbox",
+			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+			.pEngineName = "No Engine",
+			.engineVersion = VK_MAKE_VERSION(1, 0, 0),
+			.apiVersion = VK_API_VERSION_1_0
+		};
+
 		VkInstanceCreateInfo createInfo{
 			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 			.pApplicationInfo = &appInfo,
 			.enabledLayerCount = static_cast<uint32_t>(validationLayers.size()), // determine the global validation layers to enable
 			.ppEnabledLayerNames = validationLayers.data(),
-			.enabledExtensionCount = glfwExtensionCount,
-			.ppEnabledExtensionNames = glfwExtensions
+			.enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
+			.ppEnabledExtensionNames = extensions.data()
 		};
 
 		VkResult result = vkCreateInstance(
