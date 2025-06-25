@@ -1,0 +1,9 @@
+.vs/
+.vscode/
+/bin/
+/obj/
+imgui.ini
+*.aps
+*.vcxproj*
+*.sln
+*.vcxitems*
