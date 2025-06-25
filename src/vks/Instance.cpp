@@ -9,11 +9,58 @@
 #include <vks/Instance.h>
 #include <stdexcept>
 #include <iostream>
+#include <optional>
 
 namespace
 {
+	struct QueueFamilyIndices
+	{
+		std::optional<uint32_t> graphicsFamily;
+
+		bool IsComplete()
+		{
+			return graphicsFamily.has_value();
+		}
+	};
+
+	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device)
+	{
+		QueueFamilyIndices indices;
+
+		uint32_t queueFamilyCount = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+		uint32_t i = 0;
+
+		for (const auto& queueFamily : queueFamilies)
+		{
+			// Early exit if all family queues have been identified
+			if (indices.IsComplete())
+			{
+				break;
+			}
+
+			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			{
+				indices.graphicsFamily = i;
+			}
+
+			++i;
+		}
+
+		return indices;
+	}
+
 	bool IsPhysicalDeviceSuitable(VkPhysicalDevice device)
 	{
+		if (!FindQueueFamilies(device).IsComplete())
+		{
+			return false;
+		}
+
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
@@ -38,6 +85,14 @@ namespace
 
 		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(p_intance, &deviceCount, devices.data());
+
+		// Log devices
+		for (auto device : devices)
+		{
+			VkPhysicalDeviceProperties deviceProperties;
+			vkGetPhysicalDeviceProperties(device, &deviceProperties);
+			std::cout << "Device found: " << deviceProperties.deviceName << std::endl;
+		}
 
 		// Alternatively, we could rank devices based on their features, and pick the best device for the task.
 		// Or let the user select a device.
