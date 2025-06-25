@@ -10,6 +10,50 @@
 #include <stdexcept>
 #include <iostream>
 
+namespace
+{
+	bool IsPhysicalDeviceSuitable(VkPhysicalDevice device)
+	{
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+		VkPhysicalDeviceFeatures deviceFeatures;
+		vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+		// For example, we can require a physical device to be a discrete GPU and have support for geometry shaders
+		return
+			deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
+			deviceFeatures.geometryShader;
+	}
+
+	VkPhysicalDevice PickPhysicalDevice(VkInstance p_intance)
+	{
+		uint32_t deviceCount = 0;
+		vkEnumeratePhysicalDevices(p_intance, &deviceCount, nullptr);
+
+		if (deviceCount == 0)
+		{
+			throw std::runtime_error("failed to find GPUs with Vulkan support!");
+		}
+
+		std::vector<VkPhysicalDevice> devices(deviceCount);
+		vkEnumeratePhysicalDevices(p_intance, &deviceCount, devices.data());
+
+		// Alternatively, we could rank devices based on their features, and pick the best device for the task.
+		// Or let the user select a device.
+		// For more details: https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Physical_devices_and_queue_families
+		for (auto device : devices)
+		{
+			if (IsPhysicalDeviceSuitable(device))
+			{
+				return device;
+			}
+		}
+
+		throw std::runtime_error("failed to find a suitable GPU!");
+	}
+}
+
 namespace vks
 {
 	Instance::Instance(const InstanceDesc& desc)
@@ -104,6 +148,8 @@ namespace vks
 		{
 			m_debugMessenger = std::make_unique<DebugMessenger>(m_handle, *debugUtilsMessengerCreateInfo);
 		}
+
+		m_physicalDevice = PickPhysicalDevice(m_handle);
 	}
 
 	Instance::~Instance()

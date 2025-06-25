@@ -27,7 +27,8 @@ namespace vks
 		virtual ~Instance();
 
 	private:
-		VkInstance m_handle;
+		VkInstance m_handle = VK_NULL_HANDLE;
+		VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 		std::unique_ptr<DebugMessenger> m_debugMessenger;
 	};
 }

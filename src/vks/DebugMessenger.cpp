@@ -133,7 +133,7 @@ namespace vks
 	}
 
 	DebugMessenger::DebugMessenger(
-		VkInstance& p_instance,
+		VkInstance p_instance,
 		const VkDebugUtilsMessengerCreateInfoEXT& p_createInfo
 	) :
 		m_instance(p_instance)

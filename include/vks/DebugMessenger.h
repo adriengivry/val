@@ -25,7 +25,7 @@ namespace vks
 		/**
 		* Creates a debug messenger.
 		*/
-		DebugMessenger(VkInstance& p_instance, const VkDebugUtilsMessengerCreateInfoEXT& p_createInfo);
+		DebugMessenger(VkInstance p_instance, const VkDebugUtilsMessengerCreateInfoEXT& p_createInfo);
 
 		/**
 		* Destroys the debug messenger
@@ -33,7 +33,7 @@ namespace vks
 		virtual ~DebugMessenger();
 
 	private:
-		VkInstance& m_instance;
+		VkInstance m_instance;
 		VkDebugUtilsMessengerEXT m_handle;
 	};
 }
