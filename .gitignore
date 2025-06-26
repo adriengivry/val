@@ -7,3 +7,4 @@ imgui.ini
 *.vcxproj*
 *.sln
 *.vcxitems*
+*.spv

@@ -51,3 +51,22 @@ project "vulkan-sandbox"
     filter "configurations:Release"
         defines { "NDEBUG" }
         optimize "On"
+
+    -- Shader compilation
+    filter {}
+    
+    local shadersInputDir = "%{wks.location}/shaders/"
+    local shadersOutputDir = "%{wks.location}/assets/shaders/"
+    
+    buildaction "Custom"
+    buildmessage "Compiling shaders..."
+    buildcommands {
+        "if not exist \"" .. shadersOutputDir .. "\" mkdir \"" .. shadersOutputDir .. "\"",
+        "for %%f in (\"" .. shadersInputDir .. "\\*.vert\") do \"%{VULKAN_SDK}\\bin\\glslangValidator.exe\" -V \"%%f\" -o \"" .. shadersOutputDir .. "\\%%~nf.vert.spv\"",
+        "for %%f in (\"" .. shadersInputDir .. "\\*.frag\") do \"%{VULKAN_SDK}\\bin\\glslangValidator.exe\" -V \"%%f\" -o \"" .. shadersOutputDir .. "\\%%~nf.frag.spv\"",
+        "for %%f in (\"" .. shadersInputDir .. "\\*.comp\") do \"%{VULKAN_SDK}\\bin\\glslangValidator.exe\" -V \"%%f\" -o \"" .. shadersOutputDir .. "\\%%~nf.comp.spv\"",
+        "for %%f in (\"" .. shadersInputDir .. "\\*.geom\") do \"%{VULKAN_SDK}\\bin\\glslangValidator.exe\" -V \"%%f\" -o \"" .. shadersOutputDir .. "\\%%~nf.geom.spv\"",
+        "for %%f in (\"" .. shadersInputDir .. "\\*.tesc\") do \"%{VULKAN_SDK}\\bin\\glslangValidator.exe\" -V \"%%f\" -o \"" .. shadersOutputDir .. "\\%%~nf.tesc.spv\"",
+        "for %%f in (\"" .. shadersInputDir .. "\\*.tese\") do \"%{VULKAN_SDK}\\bin\\glslangValidator.exe\" -V \"%%f\" -o \"" .. shadersOutputDir .. "\\%%~nf.tese.spv\""
+    }
+    buildoutputs { "%{cfg.targetdir}/shaders_compiled.stamp" }
