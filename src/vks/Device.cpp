@@ -112,15 +112,22 @@ namespace vks
 		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
 	}
 
-	VkDevice Device::GetLogicalDevice()
+	VkPhysicalDevice Device::GetPhysicalDevice() const
+	{
+		assert(m_physicalDevice != VK_NULL_HANDLE);
+		return m_physicalDevice;
+	}
+
+	VkDevice Device::GetLogicalDevice() const
 	{
 		assert(m_logicalDevice != VK_NULL_HANDLE);
 		return m_logicalDevice;
 	}
 
-	VkQueue Device::GetGraphicsQueue()
+	VkQueue Device::GetGraphicsQueue() const
 	{
 		assert(m_logicalDevice != VK_NULL_HANDLE);
+		assert(m_graphicsQueue != VK_NULL_HANDLE);
 		return m_graphicsQueue;
 	}
 }

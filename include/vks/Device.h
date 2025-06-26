@@ -50,16 +50,21 @@ namespace vks
 		void CreateLogicalDevice(std::vector<const char*> p_validationLayers);
 
 		/**
+		* Returns the physical device handle
+		*/
+		VkPhysicalDevice GetPhysicalDevice() const;
+
+		/**
 		* Returns the logical device associated with this physical device
 		* @note CreateLogicalDevice() must be called before calling GetLogicalDevice()
 		*/
-		VkDevice GetLogicalDevice();
+		VkDevice GetLogicalDevice() const;
 
 		/**
 		* Returns the graphics queue associated with this logical device
 		* @note will assert if the device doesn't have a logical device associated
 		*/
-		VkQueue GetGraphicsQueue();
+		VkQueue GetGraphicsQueue() const;
 
 	private:
 		VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
