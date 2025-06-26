@@ -11,9 +11,7 @@
 #include <span>
 #include <vector>
 #include <vks/DebugMessenger.h>
-#include <vks/Surface.h>
-#include <vks/SwapChain.h>
-#include <vks/utils/DeviceManager.h>
+#include <vks/utils/ExtensionManager.h>
 #include <vks/utils/ValidationLayerManager.h>
 #include <vulkan/vulkan.h>
 

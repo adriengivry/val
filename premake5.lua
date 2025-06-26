@@ -47,6 +47,14 @@ project "vulkan-sandbox"
         "shaders"
     }
 
+    -- Copy assets folder to output directory
+    buildaction "Custom"
+    buildmessage "Copying assets to output folder..."
+    buildcommands {
+        "{COPYDIR} %{wks.location}assets %{cfg.targetdir}/assets"
+    }
+    buildoutputs { "%{cfg.targetdir}/assets_copied.stamp" }
+
     filter "configurations:Debug"
         defines { "DEBUG" }
         symbols "On"
@@ -54,6 +62,3 @@ project "vulkan-sandbox"
     filter "configurations:Release"
         defines { "NDEBUG" }
         optimize "On"
-
-    -- Shader compilation
-    filter {}

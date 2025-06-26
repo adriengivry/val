@@ -4,7 +4,6 @@
 * @licence: MIT
 */
 
-#include <vks/utils/ExtensionManager.h>
 #include <vks/Instance.h>
 #include <cassert>
 #include <iostream>
