@@ -11,6 +11,7 @@
 #include <iostream>
 #include <optional>
 #include <stdexcept>
+#include <set>
 
 namespace
 {
@@ -86,19 +87,31 @@ namespace vks
 
 	void Device::CreateLogicalDevice(std::vector<const char*> p_validationLayers)
 	{
+		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+		std::set<uint32_t> uniqueQueueFamilies = {
+			m_queueFamilyIndices.graphicsFamily.value(),
+			m_queueFamilyIndices.presentFamily.value()
+		};
+
 		float queuePriority = 1.0f;
 
-		VkDeviceQueueCreateInfo queueCreateInfo{
-			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-			.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily.value(),
-			.queueCount = 1,
-			.pQueuePriorities = &queuePriority
-		};
+		for (uint32_t queueFamily : uniqueQueueFamilies)
+		{
+			VkDeviceQueueCreateInfo queueCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				.queueFamilyIndex = queueFamily,
+				.queueCount = 1,
+				.pQueuePriorities = &queuePriority
+			};
+
+			queueCreateInfos.push_back(queueCreateInfo);
+		}
 
 		VkDeviceCreateInfo createInfo{
 			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-			.queueCreateInfoCount = 1,
-			.pQueueCreateInfos = &queueCreateInfo,
+			.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+			.pQueueCreateInfos = queueCreateInfos.data(),
 			.enabledLayerCount = static_cast<uint32_t>(p_validationLayers.size()),
 			.ppEnabledLayerNames = p_validationLayers.data(),
 			.enabledExtensionCount = 0,
@@ -117,6 +130,7 @@ namespace vks
 		}
 
 		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
+		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.presentFamily.value(), 0, &m_presentQueue);
 	}
 
 	VkPhysicalDevice Device::GetPhysicalDevice() const
@@ -136,5 +150,12 @@ namespace vks
 		assert(m_logicalDevice != VK_NULL_HANDLE);
 		assert(m_graphicsQueue != VK_NULL_HANDLE);
 		return m_graphicsQueue;
+	}
+
+	VkQueue Device::GetPresentQueue() const
+	{
+		assert(m_logicalDevice != VK_NULL_HANDLE);
+		assert(m_presentQueue != VK_NULL_HANDLE);
+		return m_presentQueue;
 	}
 }

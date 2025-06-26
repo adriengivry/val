@@ -67,12 +67,19 @@ namespace vks
 		*/
 		VkQueue GetGraphicsQueue() const;
 
+		/**
+		* Returns the present queue associated with this logical device
+		* @note will assert if the device doesn't have a logical device associated
+		*/
+		VkQueue GetPresentQueue() const;
+
 	private:
 		VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 		VkPhysicalDeviceProperties m_physicalDeviceProperties;
 		VkPhysicalDeviceFeatures m_physicalDeviceFeatures;
 		VkDevice m_logicalDevice = VK_NULL_HANDLE;
 		VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+		VkQueue m_presentQueue = VK_NULL_HANDLE;
 		QueueFamilyIndices m_queueFamilyIndices;
 	};
 }
