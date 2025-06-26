@@ -11,6 +11,8 @@
 #include <optional>
 #include <stdexcept>
 #include <set>
+#include <limits>
+#include <algorithm> 
 
 namespace
 {
@@ -51,6 +53,13 @@ namespace
 
 		return indices;
 	}
+
+	bool IsSwapChainAdequate(const vks::utils::SwapChainSupportDetails& p_swapChainSupportDetails)
+	{
+		return
+			!p_swapChainSupportDetails.formats.empty() &&
+			!p_swapChainSupportDetails.presentModes.empty();
+	}
 }
 
 namespace vks
@@ -60,9 +69,30 @@ namespace vks
 		return graphicsFamily.has_value() && presentFamily.has_value();
 	}
 
+	std::vector<uint32_t> QueueFamilyIndices::GetUniqueQueueIndices() const
+	{
+		assert(IsComplete());
+
+		std::set<uint32_t> uniqueIndices{
+			graphicsFamily.value(),
+			presentFamily.value()
+		};
+
+		std::vector<uint32_t> output;
+		output.reserve(uniqueIndices.size());
+
+		for (uint32_t index : uniqueIndices)
+		{
+			output.push_back(index);
+		}
+
+		return output;
+	}
+
 	Device::Device(VkPhysicalDevice p_physicalDevice, VkSurfaceKHR p_surface) :
 		m_physicalDevice(p_physicalDevice),
-		m_queueFamilyIndices(FindQueueFamilies(p_physicalDevice, p_surface))
+		m_queueFamilyIndices(FindQueueFamilies(p_physicalDevice, p_surface)),
+		m_surface(p_surface)
 	{
 		vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
 		vkGetPhysicalDeviceFeatures(m_physicalDevice, &m_physicalDeviceFeatures);
@@ -78,24 +108,38 @@ namespace vks
 		vkDestroyDevice(m_logicalDevice, nullptr);
 	}
 
-	bool Device::IsSuitable() const
+	void Device::QuerySuitability()
 	{
-		if (!m_queueFamilyIndices.IsComplete())
-		{
-			return false;
-		}
-
-		// A device isn't suitable if any of the required extension is unavailable
-		for (auto& extension : m_requestedExtensions)
-		{
-			if (extension.required && !m_extensionManager.IsExtensionSupported(extension.name))
+		m_suitable = [this]() {
+			if (!m_queueFamilyIndices.IsComplete())
 			{
 				return false;
 			}
-		}
 
-		// For example, we can require a physical device to be a discrete GPU 
-		return m_physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+			// A device isn't suitable if any of the required extension is unavailable
+			for (auto& extension : m_requestedExtensions)
+			{
+				if (extension.required && !m_extensionManager.IsExtensionSupported(extension.name))
+				{
+					return false;
+				}
+			}
+
+			// Store swap chain support details since they can be used for swap chain creation
+			m_swapChainSupportDetails = utils::SwapChainUtils::QuerySwapChainDetails(m_physicalDevice, m_surface);
+			if (!IsSwapChainAdequate(m_swapChainSupportDetails))
+			{
+				return false;
+			}
+
+			// For example, we can require a physical device to be a discrete GPU 
+			return m_physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+		}();
+	}
+
+	bool Device::IsSuitable() const
+	{
+		return m_suitable;
 	}
 
 	void Device::CreateLogicalDevice(std::vector<const char*> p_validationLayers)
@@ -129,8 +173,9 @@ namespace vks
 			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 			.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
 			.pQueueCreateInfos = queueCreateInfos.data(),
-			.enabledLayerCount = static_cast<uint32_t>(p_validationLayers.size()),
-			.ppEnabledLayerNames = p_validationLayers.data(),
+			// Deprecated validation layers on device
+			// .enabledLayerCount = static_cast<uint32_t>(p_validationLayers.size()),
+			// .ppEnabledLayerNames = p_validationLayers.data(),
 			.enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
 			.ppEnabledExtensionNames = extensions.data(),
 			.pEnabledFeatures = &m_physicalDeviceFeatures,
@@ -158,12 +203,14 @@ namespace vks
 
 	VkDevice Device::GetLogicalDevice() const
 	{
+		assert(m_suitable);
 		assert(m_logicalDevice != VK_NULL_HANDLE);
 		return m_logicalDevice;
 	}
 
 	VkQueue Device::GetGraphicsQueue() const
 	{
+		assert(m_suitable);
 		assert(m_logicalDevice != VK_NULL_HANDLE);
 		assert(m_graphicsQueue != VK_NULL_HANDLE);
 		return m_graphicsQueue;
@@ -171,8 +218,20 @@ namespace vks
 
 	VkQueue Device::GetPresentQueue() const
 	{
+		assert(m_suitable);
 		assert(m_logicalDevice != VK_NULL_HANDLE);
 		assert(m_presentQueue != VK_NULL_HANDLE);
 		return m_presentQueue;
+	}
+
+	const utils::SwapChainSupportDetails& Device::GetSwapChainSupportDetails() const
+	{
+		assert(m_suitable);
+		return m_swapChainSupportDetails;
+	}
+
+	const QueueFamilyIndices& Device::GetQueueFamilyIndices() const
+	{
+		return m_queueFamilyIndices;
 	}
 }

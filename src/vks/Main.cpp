@@ -44,24 +44,51 @@ int main()
 		requiredExtensions.push_back(glfwExtensions[i]);
 	}
 
-	void* windowHandle = nullptr;
-	void* instanceHandle = nullptr;
-
-#if defined(_WIN32) || defined(_WIN64)
-	windowHandle = glfwGetWin32Window(window);
-	instanceHandle = GetModuleHandle(nullptr);
-#endif
-
-	assert(windowHandle != nullptr && "Invalid window handle");
-
 	std::unique_ptr<vks::Instance> instance = std::make_unique<vks::Instance>(
 		vks::InstanceDesc{
-			.requiredExtensions = requiredExtensions,
-			.surfaceDesc = vks::SurfaceDesc{
-				.windowHandle = windowHandle,
-				.instanceHandle = instanceHandle
-			}
+			.requiredExtensions = requiredExtensions
 		}
+	);
+
+	std::unique_ptr<vks::Surface> surface = std::make_unique<vks::Surface>(
+		instance->GetHandle(),
+#if defined(_WIN32) || defined(_WIN64)
+		vks::SurfaceDesc{
+			.windowHandle = glfwGetWin32Window(window),
+			.instanceHandle = GetModuleHandle(nullptr)
+#else
+#error Only supporting Windows for now!
+#endif
+	});
+
+	assert((surface && surface->GetHandle() != VK_NULL_HANDLE) && "invalid surface handle, cannot continue since headless isn't supported");
+
+	std::unique_ptr<vks::utils::DeviceManager> deviceManager = std::make_unique<vks::utils::DeviceManager>(
+		instance->GetHandle(),
+		surface->GetHandle()
+	);
+
+	vks::Device& device = deviceManager->GetSuitableDevice();
+	device.CreateLogicalDevice(instance->GetValidationLayers());
+
+	// Can be outside of the render loop, since the window is marked as non-resizable.
+	// If this were to change, this should be evaluated each frame, and the swap chain would
+	// need to be recreated.
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+
+	vks::utils::SwapChainDesc swapChainDesc = vks::utils::SwapChainUtils::CreateSwapChainDesc(
+		device.GetSwapChainSupportDetails(),
+		VkExtent2D{
+			static_cast<uint32_t>(width),
+			static_cast<uint32_t>(height)
+		}
+	);
+
+	std::unique_ptr<vks::SwapChain> swapChain = std::make_unique<vks::SwapChain>(
+		device,
+		surface->GetHandle(),
+		swapChainDesc
 	);
 
 	// Instead of handling the surface creation inside of vks::Instance, we could create a platform-agnostic vulkan instead just like that:
@@ -75,9 +102,18 @@ int main()
 
 	while (!glfwWindowShouldClose(window))
 	{
+		// Retrieve swap chain images and use them for rendering operations
+		const auto& swapChainImages = swapChain->GetImages();
+		const auto& swapChainDesc = swapChain->GetDesc();
+
+		// Draw things here
+
 		glfwPollEvents();
 	}
 
+	swapChain.reset();
+	deviceManager.reset();
+	surface.reset();
 	instance.reset();
 
 	glfwDestroyWindow(window);

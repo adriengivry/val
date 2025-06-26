@@ -32,6 +32,12 @@ namespace vks::utils
 			std::cout << "Device found: " << deviceProperties.deviceName << std::endl;
 			m_devices.emplace_back(device, p_surface);
 		}
+
+		// Cache suitability info about each device
+		for (auto& device : m_devices)
+		{
+			device.QuerySuitability();
+		}
 	}
 
 	Device& vks::utils::DeviceManager::GetSuitableDevice()

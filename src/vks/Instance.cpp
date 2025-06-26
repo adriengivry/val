@@ -5,7 +5,6 @@
 */
 
 #include <vks/utils/ExtensionManager.h>
-#include <vks/utils/ValidationLayerManager.h>
 #include <vks/Instance.h>
 #include <cassert>
 #include <iostream>
@@ -16,17 +15,14 @@ namespace vks
 {
 	Instance::Instance(const InstanceDesc& desc)
 	{
-		utils::ExtensionManager extensionManager;
-		utils::ValidationLayerManager validationLayerManager;
+		m_extensionManager.FetchExtensions<utils::EExtensionHandler::Instance>();
 
-		extensionManager.FetchExtensions<utils::EExtensionHandler::Instance>();
-
-		extensionManager.LogExtensions();
-		validationLayerManager.LogValidationLayers();
+		m_extensionManager.LogExtensions();
+		m_validationLayerManager.LogValidationLayers();
 
 		const bool k_useDebugUtilsExtension =
 #ifdef DEBUG
-			extensionManager.IsExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+			m_extensionManager.IsExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #else
 			false;
 #endif
@@ -51,8 +47,8 @@ namespace vks
 			requestedValidationLayers.emplace_back("VK_LAYER_KHRONOS_validation", false);
 		}
 
-		const auto extensions = extensionManager.FilterExtensions(requestedExtensions);
-		const auto validationLayers = validationLayerManager.FilterValidationLayers(requestedValidationLayers);
+		m_extensions = m_extensionManager.FilterExtensions(requestedExtensions);
+		m_validationLayers = m_validationLayerManager.FilterValidationLayers(requestedValidationLayers);
 
 		// VkApplicationInfo is optional, but useful to specify info about our app.
 		VkApplicationInfo appInfo{
@@ -68,10 +64,10 @@ namespace vks
 		VkInstanceCreateInfo createInfo{
 			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 			.pApplicationInfo = &appInfo,
-			.enabledLayerCount = static_cast<uint32_t>(validationLayers.size()), // determine the global validation layers to enable
-			.ppEnabledLayerNames = validationLayers.data(),
-			.enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
-			.ppEnabledExtensionNames = extensions.data()
+			.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size()), // determine the global validation layers to enable
+			.ppEnabledLayerNames = m_validationLayers.data(),
+			.enabledExtensionCount = static_cast<uint32_t>(m_extensions.size()),
+			.ppEnabledExtensionNames = m_extensions.data()
 		};
 
 		std::unique_ptr<VkDebugUtilsMessengerCreateInfoEXT> debugUtilsMessengerCreateInfo;
@@ -108,35 +104,27 @@ namespace vks
 		{
 			m_debugMessenger = std::make_unique<DebugMessenger>(m_handle, *debugUtilsMessengerCreateInfo);
 		}
-
-		if (desc.surfaceDesc.has_value())
-		{
-			m_surface = std::make_unique<Surface>(m_handle, desc.surfaceDesc.value());
-		}
-		else
-		{
-			throw std::runtime_error("headless Vulkan not supported, yet! Please provide a valid window and instance handle");
-		}
-
-		assert((m_surface && m_surface->GetHandle() != VK_NULL_HANDLE) && "invalid surface handle, cannot continue since headless isn't supported");
-
-		m_deviceManager = std::make_unique<utils::DeviceManager>(m_handle, m_surface->GetHandle());
-		m_device = m_deviceManager->GetSuitableDevice();
-		m_device.value().get().CreateLogicalDevice(validationLayers);
 	}
 
 	Instance::~Instance()
 	{
-		m_deviceManager.reset();
-		m_device.reset();
-		m_surface.reset();
 		m_debugMessenger.reset();
 		vkDestroyInstance(m_handle, nullptr);
 	}
 
-	const Surface& Instance::GetSurface() const
+	VkInstance Instance::GetHandle() const
 	{
-		assert(m_surface && "No surface!");
-		return *m_surface;
+		assert(m_handle);
+		return m_handle;
+	}
+
+	const std::vector<const char*>& Instance::GetExtensions() const
+	{
+		return m_extensions;
+	}
+
+	const std::vector<const char*>& Instance::GetValidationLayers() const
+	{
+		return m_validationLayers;
 	}
 }

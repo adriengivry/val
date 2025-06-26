@@ -12,7 +12,9 @@
 #include <vector>
 #include <vks/DebugMessenger.h>
 #include <vks/Surface.h>
+#include <vks/SwapChain.h>
 #include <vks/utils/DeviceManager.h>
+#include <vks/utils/ValidationLayerManager.h>
 #include <vulkan/vulkan.h>
 
 namespace vks
@@ -20,7 +22,6 @@ namespace vks
 	struct InstanceDesc
 	{
 		std::vector<std::string> requiredExtensions;
-		std::optional<SurfaceDesc> surfaceDesc;
 	};
 
 	class Instance
@@ -37,15 +38,26 @@ namespace vks
 		virtual ~Instance();
 
 		/**
-		* Returns the surface associated with this instance
+		* Returns the instance handle
 		*/
-		const Surface& GetSurface() const;
+		VkInstance GetHandle() const;
+
+		/**
+		* Returns enabled extensions
+		*/
+		const std::vector<const char*>& GetExtensions() const;
+
+		/**
+		* Returns enabled validation layers
+		*/
+		const std::vector<const char*>& GetValidationLayers() const;
 
 	private:
+		utils::ExtensionManager m_extensionManager;
+		utils::ValidationLayerManager m_validationLayerManager;
+		std::vector<const char*> m_extensions;
+		std::vector<const char*> m_validationLayers;
 		VkInstance m_handle = VK_NULL_HANDLE;
-		std::unique_ptr<utils::DeviceManager> m_deviceManager;
-		std::optional<std::reference_wrapper<vks::Device>> m_device;
-		std::unique_ptr<Surface> m_surface;
 		std::unique_ptr<DebugMessenger> m_debugMessenger;
 	};
 }

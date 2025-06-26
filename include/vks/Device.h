@@ -10,9 +10,11 @@
 #include <string>
 #include <optional>
 #include <span>
+#include <array>
 #include <vector>
 #include <vks/DebugMessenger.h>
 #include <vks/utils/ExtensionManager.h>
+#include <vks/utils/SwapChainUtils.h>
 #include <vulkan/vulkan.h>
 
 namespace vks
@@ -26,6 +28,11 @@ namespace vks
 		* Returns true if all the required queue family are complete
 		*/
 		bool IsComplete() const;
+
+		/**
+		* Returns a contiguous array of indices
+		*/
+		std::vector<uint32_t> GetUniqueQueueIndices() const;
 	};
 
 	class Device
@@ -40,6 +47,11 @@ namespace vks
 		* Destroys the device
 		*/
 		virtual ~Device();
+
+		/**
+		* Checks if the device is suitable, and cache the result
+		*/
+		void QuerySuitability();
 
 		/**
 		* Returns true if this device is suitable
@@ -74,7 +86,18 @@ namespace vks
 		*/
 		VkQueue GetPresentQueue() const;
 
+		/**
+		* Returns swap chain support details for this physical device
+		*/
+		const utils::SwapChainSupportDetails& GetSwapChainSupportDetails() const;
+
+		/**
+		* Returns queue family indices
+		*/
+		const QueueFamilyIndices& GetQueueFamilyIndices() const;
+
 	private:
+		bool m_suitable = false;
 		std::vector<utils::RequestedExtension> m_requestedExtensions;
 		utils::ExtensionManager m_extensionManager;
 		VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
@@ -84,5 +107,7 @@ namespace vks
 		VkQueue m_graphicsQueue = VK_NULL_HANDLE;
 		VkQueue m_presentQueue = VK_NULL_HANDLE;
 		QueueFamilyIndices m_queueFamilyIndices;
+		VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+		utils::SwapChainSupportDetails m_swapChainSupportDetails;
 	};
 }
