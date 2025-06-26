@@ -9,12 +9,24 @@
 
 namespace vks::utils
 {
-	ExtensionManager::ExtensionManager()
+	template<>
+	void ExtensionManager::FetchExtensions<EExtensionHandler::Instance>(void*)
 	{
 		uint32_t extensionCount = 0;
 		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 		m_extensions.resize(extensionCount);
 		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, m_extensions.data());
+	}
+
+	template<>
+	void ExtensionManager::FetchExtensions<EExtensionHandler::PhysicalDevice>(void* handler)
+	{
+		auto physicalDevice = static_cast<VkPhysicalDevice>(handler);
+
+		uint32_t extensionCount = 0;
+		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+		m_extensions.resize(extensionCount);
+		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, m_extensions.data());
 	}
 
 	bool ExtensionManager::IsExtensionSupported(const std::string_view extension) const

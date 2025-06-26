@@ -12,6 +12,7 @@
 #include <span>
 #include <vector>
 #include <vks/DebugMessenger.h>
+#include <vks/utils/ExtensionManager.h>
 #include <vulkan/vulkan.h>
 
 namespace vks
@@ -74,6 +75,8 @@ namespace vks
 		VkQueue GetPresentQueue() const;
 
 	private:
+		std::vector<utils::RequestedExtension> m_requestedExtensions;
+		utils::ExtensionManager m_extensionManager;
 		VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 		VkPhysicalDeviceProperties m_physicalDeviceProperties;
 		VkPhysicalDeviceFeatures m_physicalDeviceFeatures;

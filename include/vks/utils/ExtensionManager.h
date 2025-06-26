@@ -19,18 +19,30 @@ namespace vks::utils
 		bool required;
 	};
 
+	enum class EExtensionHandler
+	{
+		Instance,
+		PhysicalDevice
+	};
+
 	class ExtensionManager
 	{
 	public:
 		/**
-		* Creates the extension manager, and automatically fetches supported extensions
+		* Creates the extension manager
 		*/
-		ExtensionManager();
+		ExtensionManager() = default;
 
 		/**
 		* Destroys the extension manager
 		*/
 		virtual ~ExtensionManager() = default;
+
+		/**
+		* Fetch extensions for the given handler
+		*/
+		template<EExtensionHandler HandlerType>
+		void FetchExtensions(void* p_handler = nullptr);
 
 		/**
 		* Returns true if a given extension is supported

@@ -4,7 +4,6 @@
 * @licence: MIT
 */
 
-#include <vks/utils/ExtensionManager.h>
 #include <vks/utils/ValidationLayerManager.h>
 #include <vks/Device.h>
 #include <cassert>
@@ -67,6 +66,11 @@ namespace vks
 	{
 		vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
 		vkGetPhysicalDeviceFeatures(m_physicalDevice, &m_physicalDeviceFeatures);
+
+		m_extensionManager.FetchExtensions<utils::EExtensionHandler::PhysicalDevice>(m_physicalDevice);
+
+		// Based on the configuration of the device, we require some extensions.
+		m_requestedExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME, true);
 	}
 
 	Device::~Device()
@@ -79,6 +83,15 @@ namespace vks
 		if (!m_queueFamilyIndices.IsComplete())
 		{
 			return false;
+		}
+
+		// A device isn't suitable if any of the required extension is unavailable
+		for (auto& extension : m_requestedExtensions)
+		{
+			if (extension.required && !m_extensionManager.IsExtensionSupported(extension.name))
+			{
+				return false;
+			}
 		}
 
 		// For example, we can require a physical device to be a discrete GPU 
@@ -108,14 +121,18 @@ namespace vks
 			queueCreateInfos.push_back(queueCreateInfo);
 		}
 
+		// Filter out all the non-supported extensions. All the required extensions should be available
+		// since we checked for them in "IsSuitable()"
+		std::vector<const char*> extensions = m_extensionManager.FilterExtensions(m_requestedExtensions);
+
 		VkDeviceCreateInfo createInfo{
 			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 			.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
 			.pQueueCreateInfos = queueCreateInfos.data(),
 			.enabledLayerCount = static_cast<uint32_t>(p_validationLayers.size()),
 			.ppEnabledLayerNames = p_validationLayers.data(),
-			.enabledExtensionCount = 0,
-			.ppEnabledExtensionNames = VK_NULL_HANDLE,
+			.enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
+			.ppEnabledExtensionNames = extensions.data(),
 			.pEnabledFeatures = &m_physicalDeviceFeatures,
 		};
 

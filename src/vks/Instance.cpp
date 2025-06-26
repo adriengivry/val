@@ -19,6 +19,8 @@ namespace vks
 		utils::ExtensionManager extensionManager;
 		utils::ValidationLayerManager validationLayerManager;
 
+		extensionManager.FetchExtensions<utils::EExtensionHandler::Instance>();
+
 		extensionManager.LogExtensions();
 		validationLayerManager.LogValidationLayers();
 
