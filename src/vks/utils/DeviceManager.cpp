@@ -9,7 +9,7 @@
 
 namespace vks::utils
 {
-	DeviceManager::DeviceManager(VkInstance p_instance)
+	DeviceManager::DeviceManager(VkInstance p_instance, VkSurfaceKHR p_surface)
 	{
 		uint32_t deviceCount = 0;
 		vkEnumeratePhysicalDevices(p_instance, &deviceCount, nullptr);
@@ -30,7 +30,7 @@ namespace vks::utils
 			VkPhysicalDeviceProperties deviceProperties;
 			vkGetPhysicalDeviceProperties(device, &deviceProperties);
 			std::cout << "Device found: " << deviceProperties.deviceName << std::endl;
-			m_devices.emplace_back(device);
+			m_devices.emplace_back(device, p_surface);
 		}
 	}
 

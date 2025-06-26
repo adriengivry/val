@@ -20,7 +20,7 @@ namespace vks::utils
 		/**
 		* Creates the device manager
 		*/
-		DeviceManager(VkInstance p_instance);
+		DeviceManager(VkInstance p_instance, VkSurfaceKHR p_surface);
 
 		/**
 		* Destroys the device manager

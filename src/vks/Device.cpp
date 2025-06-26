@@ -14,7 +14,7 @@
 
 namespace
 {
-	vks::QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device)
+	vks::QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR p_surface)
 	{
 		vks::QueueFamilyIndices indices;
 
@@ -39,6 +39,13 @@ namespace
 				indices.graphicsFamily = i;
 			}
 
+			VkBool32 presentSupport = false;
+			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, p_surface, &presentSupport);
+			if (presentSupport)
+			{
+				indices.presentFamily = i;
+			}
+
 			++i;
 		}
 
@@ -50,12 +57,12 @@ namespace vks
 {
 	bool QueueFamilyIndices::IsComplete() const
 	{
-		return graphicsFamily.has_value();
+		return graphicsFamily.has_value() && presentFamily.has_value();
 	}
 
-	Device::Device(VkPhysicalDevice p_physicalDevice) :
+	Device::Device(VkPhysicalDevice p_physicalDevice, VkSurfaceKHR p_surface) :
 		m_physicalDevice(p_physicalDevice),
-		m_queueFamilyIndices(FindQueueFamilies(p_physicalDevice))
+		m_queueFamilyIndices(FindQueueFamilies(p_physicalDevice, p_surface))
 	{
 		vkGetPhysicalDeviceProperties(m_physicalDevice, &m_physicalDeviceProperties);
 		vkGetPhysicalDeviceFeatures(m_physicalDevice, &m_physicalDeviceFeatures);

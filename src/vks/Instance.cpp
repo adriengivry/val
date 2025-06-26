@@ -107,10 +107,6 @@ namespace vks
 			m_debugMessenger = std::make_unique<DebugMessenger>(m_handle, *debugUtilsMessengerCreateInfo);
 		}
 
-		m_deviceManager = std::make_unique<utils::DeviceManager>(m_handle);
-		m_device = m_deviceManager->GetSuitableDevice();
-		m_device.value().get().CreateLogicalDevice(validationLayers);
-
 		if (desc.surfaceDesc.has_value())
 		{
 			m_surface = std::make_unique<Surface>(m_handle, desc.surfaceDesc.value());
@@ -119,13 +115,19 @@ namespace vks
 		{
 			throw std::runtime_error("headless Vulkan not supported, yet! Please provide a valid window and instance handle");
 		}
+
+		assert((m_surface && m_surface->GetHandle() != VK_NULL_HANDLE) && "invalid surface handle, cannot continue since headless isn't supported");
+
+		m_deviceManager = std::make_unique<utils::DeviceManager>(m_handle, m_surface->GetHandle());
+		m_device = m_deviceManager->GetSuitableDevice();
+		m_device.value().get().CreateLogicalDevice(validationLayers);
 	}
 
 	Instance::~Instance()
 	{
-		m_surface.reset();
 		m_deviceManager.reset();
 		m_device.reset();
+		m_surface.reset();
 		m_debugMessenger.reset();
 		vkDestroyInstance(m_handle, nullptr);
 	}

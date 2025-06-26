@@ -19,6 +19,7 @@ namespace vks
 	struct QueueFamilyIndices
 	{
 		std::optional<uint32_t> graphicsFamily;
+		std::optional<uint32_t> presentFamily;
 
 		/**
 		* Returns true if all the required queue family are complete
@@ -32,7 +33,7 @@ namespace vks
 		/**
 		* Create a device instance from a physical device
 		*/
-		Device(VkPhysicalDevice p_physicalDevice);
+		Device(VkPhysicalDevice p_physicalDevice, VkSurfaceKHR p_surface);
 
 		/**
 		* Destroys the device
@@ -71,7 +72,7 @@ namespace vks
 		VkPhysicalDeviceProperties m_physicalDeviceProperties;
 		VkPhysicalDeviceFeatures m_physicalDeviceFeatures;
 		VkDevice m_logicalDevice = VK_NULL_HANDLE;
-		VkQueue m_graphicsQueue;
+		VkQueue m_graphicsQueue = VK_NULL_HANDLE;
 		QueueFamilyIndices m_queueFamilyIndices;
 	};
 }
