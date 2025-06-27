@@ -22,7 +22,7 @@ namespace vks
 
 	}
 
-	const VkPipelineShaderStageCreateInfo& ShaderStage::GetCreateInfo()
+	const VkPipelineShaderStageCreateInfo& ShaderStage::GetCreateInfo() const
 	{
 		return m_shaderStageCreateInfo;
 	}

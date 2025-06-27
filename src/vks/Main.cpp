@@ -110,6 +110,11 @@ int main()
 	vks::ShaderStage vertexStage(*vertexModule, VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT);
 	vks::ShaderStage fragmentStage(*fragmentModule, VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT);
 
+	std::vector<VkPipelineShaderStageCreateInfo> assembledShaderStages = vks::utils::ShaderUtils::AssembleShaderStages(std::to_array({
+		vertexStage,
+		fragmentStage
+	}));
+
 	// Instead of handling the surface creation inside of vks::Instance, we could create a platform-agnostic vulkan instead just like that:
 	/*
 	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {

@@ -27,7 +27,7 @@ namespace vks
 		/**
 		* Returns the create info of the shader stage
 		*/
-		const VkPipelineShaderStageCreateInfo& GetCreateInfo();
+		const VkPipelineShaderStageCreateInfo& GetCreateInfo() const;
 
 	private:
 		VkPipelineShaderStageCreateInfo m_shaderStageCreateInfo;
