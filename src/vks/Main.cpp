@@ -27,6 +27,7 @@
 #include <vks/Surface.h>
 #include <vks/SwapChain.h>
 #include <vks/ShaderModule.h>
+#include <vks/ShaderStage.h>
 #include <vks/utils/ShaderUtils.h>
 #include <vks/utils/DeviceManager.h>
 
@@ -96,15 +97,18 @@ int main()
 		swapChainDesc
 	);
 
-	std::unique_ptr<vks::ShaderModule> vertexShaderModule = std::make_unique<vks::ShaderModule>(
+	std::unique_ptr<vks::ShaderModule> vertexModule = std::make_unique<vks::ShaderModule>(
 		device.GetLogicalDevice(),
 		vks::utils::ShaderUtils::ReadShaderFile("assets/shaders/foo.vert.spv")
 	);
 
-	std::unique_ptr<vks::ShaderModule> fragmentShaderModule = std::make_unique<vks::ShaderModule>(
+	std::unique_ptr<vks::ShaderModule> fragmentModule = std::make_unique<vks::ShaderModule>(
 		device.GetLogicalDevice(),
 		vks::utils::ShaderUtils::ReadShaderFile("assets/shaders/foo.frag.spv")
 	);
+
+	vks::ShaderStage vertexStage(*vertexModule, VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT);
+	vks::ShaderStage fragmentStage(*fragmentModule, VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// Instead of handling the surface creation inside of vks::Instance, we could create a platform-agnostic vulkan instead just like that:
 	/*
@@ -165,8 +169,8 @@ int main()
 
 	}
 
-	fragmentShaderModule.reset();
-	vertexShaderModule.reset();
+	fragmentModule.reset();
+	vertexModule.reset();
 	swapChain.reset();
 	deviceManager.reset();
 	surface.reset();
