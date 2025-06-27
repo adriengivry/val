@@ -28,15 +28,4 @@ namespace vks::utils
 		file.close();
 		return buffer;
 	}
-
-	std::vector<VkPipelineShaderStageCreateInfo> ShaderUtils::AssembleShaderStages(std::span<const ShaderStage> p_stages)
-	{
-		std::vector<VkPipelineShaderStageCreateInfo> assembledStages;
-		assembledStages.reserve(p_stages.size());
-		for (auto& stage : p_stages)
-		{
-			assembledStages.push_back(stage.GetCreateInfo());
-		}
-		return assembledStages;
-	}
 }

@@ -28,6 +28,9 @@
 #include <vks/SwapChain.h>
 #include <vks/ShaderModule.h>
 #include <vks/ShaderStage.h>
+#include <vks/ShaderProgram.h>
+#include <vks/RenderPass.h>
+#include <vks/GraphicsPipeline.h>
 #include <vks/utils/ShaderUtils.h>
 #include <vks/utils/DeviceManager.h>
 
@@ -109,11 +112,26 @@ int main()
 
 	vks::ShaderStage vertexStage(*vertexModule, VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT);
 	vks::ShaderStage fragmentStage(*fragmentModule, VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	std::vector<VkPipelineShaderStageCreateInfo> assembledShaderStages = vks::utils::ShaderUtils::AssembleShaderStages(std::to_array({
+	vks::ShaderProgram program(std::to_array({
 		vertexStage,
 		fragmentStage
 	}));
+
+	std::unique_ptr<vks::RenderPass> renderPass = std::make_unique<vks::RenderPass>(
+		device.GetLogicalDevice(),
+		vks::RenderPassDesc{
+			.swapChain = *swapChain
+		}
+	);
+
+	std::unique_ptr<vks::GraphicsPipeline> graphicsPipeline = std::make_unique<vks::GraphicsPipeline>(
+		device.GetLogicalDevice(),
+		vks::GraphicsPipelineDesc{
+			.program = program,
+			.swapChain = *swapChain,
+			.renderPass = *renderPass
+		}
+	);
 
 	// Instead of handling the surface creation inside of vks::Instance, we could create a platform-agnostic vulkan instead just like that:
 	/*
@@ -174,6 +192,8 @@ int main()
 
 	}
 
+	renderPass.reset();
+	graphicsPipeline.reset();
 	fragmentModule.reset();
 	vertexModule.reset();
 	swapChain.reset();
