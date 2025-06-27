@@ -7,7 +7,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <vks/RenderPass.h>
+#include <vks/SwapChain.h>
 #include <vks/Device.h>
 
 namespace vks

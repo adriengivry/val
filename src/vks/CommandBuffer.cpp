@@ -20,4 +20,26 @@ namespace vks
 	{
 		return m_handle;
 	}
+
+	void CommandBuffer::Begin()
+	{
+		VkCommandBufferBeginInfo beginInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			.flags = 0, // Optional
+			.pInheritanceInfo = nullptr // Optional
+		};
+
+		if (vkBeginCommandBuffer(m_handle, &beginInfo) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to begin recording command buffer!");
+		}
+	}
+
+	void CommandBuffer::End()
+	{
+		if (vkEndCommandBuffer(m_handle) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to record command buffer!");
+		}
+	}
 }

@@ -68,4 +68,33 @@ namespace vks
 	{
 		return m_handle;
 	}
+
+	void RenderPass::Begin(vks::CommandBuffer& p_commandBuffer, vks::Framebuffer& p_framebuffer, VkExtent2D p_extent)
+	{
+		m_currentCommandBuffer = p_commandBuffer;
+
+		VkClearValue clearColor = {{
+			{ 0.0f, 0.0f, 0.0f, 1.0f }
+		}};
+
+		VkRenderPassBeginInfo renderPassInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.renderPass = m_handle,
+			.framebuffer = p_framebuffer.GetHandle(),
+			.renderArea = {
+				.offset = { 0, 0 },
+				.extent = p_extent
+			},
+			.clearValueCount = 1,
+			.pClearValues = &clearColor
+		};
+
+		vkCmdBeginRenderPass(p_commandBuffer.GetHandle(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	}
+
+	void RenderPass::End(vks::CommandBuffer& p_commandBuffer)
+	{
+		vkCmdEndRenderPass(p_commandBuffer.GetHandle());
+	}
+
 }

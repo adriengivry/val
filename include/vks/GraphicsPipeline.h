@@ -33,6 +33,11 @@ namespace vks
 		*/
 		virtual ~GraphicsPipeline();
 
+		/**
+		* Returns a VkPipeline handle
+		*/
+		VkPipeline GetHandle() const;
+
 	private:
 		VkDevice m_device = VK_NULL_HANDLE;
 		VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;

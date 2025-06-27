@@ -199,7 +199,34 @@ int main()
 
 	while (!glfwWindowShouldClose(window))
 	{
+		commandBuffer.Begin();
+		renderPass->Begin(commandBuffer, swapChainFramebuffers[0], swapChainDesc.extent);
+
+		vkCmdBindPipeline(commandBuffer.GetHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->GetHandle());
+
+		// As noted in the fixed functions chapter, we did specify viewport and scissor state for this pipeline to be dynamic.
+		// So we need to set them in the command buffer before issuing our draw command:
+		VkViewport viewport{
+			.x = 0.0f,
+			.y = 0.0f,
+			.width = static_cast<float>(swapChainDesc.extent.width),
+			.height = static_cast<float>(swapChainDesc.extent.height),
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		};
+		vkCmdSetViewport(commandBuffer.GetHandle(), 0, 1, &viewport);
+
+		VkRect2D scissor{
+			.offset = { 0, 0 },
+			.extent = swapChainDesc.extent
+		};
+		vkCmdSetScissor(commandBuffer.GetHandle(), 0, 1, &scissor);
+
 		// Draw things here
+		vkCmdDraw(commandBuffer.GetHandle(), 3, 1, 0, 0);
+
+		renderPass->End(commandBuffer);
+		commandBuffer.End();
 
 		glfwPollEvents();
 	}

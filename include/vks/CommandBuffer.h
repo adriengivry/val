@@ -25,6 +25,16 @@ namespace vks
 		*/
 		VkCommandBuffer GetHandle() const;
 
+		/**
+		* Begin recording commands
+		*/
+		void Begin();
+
+		/**
+		* Finish recording commands
+		*/
+		void End();
+
 	private:
 		CommandBuffer(VkCommandBuffer p_handle);
 

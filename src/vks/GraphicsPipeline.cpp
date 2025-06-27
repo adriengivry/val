@@ -189,4 +189,9 @@ namespace vks
 		vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 		vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
 	}
+
+	VkPipeline GraphicsPipeline::GetHandle() const
+	{
+		return m_graphicsPipeline;
+	}
 }
