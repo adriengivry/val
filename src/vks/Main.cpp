@@ -31,6 +31,7 @@
 #include <vks/ShaderProgram.h>
 #include <vks/RenderPass.h>
 #include <vks/Framebuffer.h>
+#include <vks/CommandPool.h>
 #include <vks/GraphicsPipeline.h>
 #include <vks/utils/ShaderUtils.h>
 #include <vks/utils/DeviceManager.h>
@@ -60,6 +61,14 @@ int main()
 		}
 	);
 
+	// Instead of handling the surface creation inside of vks::Instance, we could create a platform-agnostic vulkan instead just like that:
+	/*
+	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create window surface!");
+	}
+	*/
+	// But since we dont want to assume that the user is using GLFW, it might be better to have an actual code path to create a surface for
+	// each supported platform.
 	std::unique_ptr<vks::Surface> surface = std::make_unique<vks::Surface>(
 		instance->GetHandle(),
 #if defined(_WIN32) || defined(_WIN64)
@@ -185,14 +194,8 @@ int main()
 		);
 	}
 
-	// Instead of handling the surface creation inside of vks::Instance, we could create a platform-agnostic vulkan instead just like that:
-	/*
-	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create window surface!");
-	}
-	*/
-	// But since we dont want to assume that the user is using GLFW, it might be better to have an actual code path to create a surface for
-	// each supported platform.
+	std::unique_ptr<vks::CommandPool> commandPool = std::make_unique<vks::CommandPool>(device);
+	vks::CommandBuffer& commandBuffer = commandPool->AllocateCommandBuffer();
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -206,6 +209,7 @@ int main()
 		vkDestroyImageView(device.GetLogicalDevice(), imageView, nullptr);
 	}
 
+	commandPool.reset();
 	swapChainFramebuffers.clear();
 	renderPass.reset();
 	graphicsPipeline.reset();
