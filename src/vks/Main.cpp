@@ -30,6 +30,7 @@
 #include <vks/ShaderStage.h>
 #include <vks/ShaderProgram.h>
 #include <vks/RenderPass.h>
+#include <vks/Framebuffer.h>
 #include <vks/GraphicsPipeline.h>
 #include <vks/utils/ShaderUtils.h>
 #include <vks/utils/DeviceManager.h>
@@ -133,6 +134,57 @@ int main()
 		}
 	);
 
+	// Retrieve swap chain images and use them for rendering operations
+	const auto& swapChainImages = swapChain->GetImages();
+
+	std::vector<VkImageView> swapChainImageViews(swapChainImages.size());
+	for (size_t i = 0; i < swapChainImages.size(); i++)
+	{
+		VkImageViewCreateInfo createInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = swapChainImages[i],
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = swapChainDesc.surfaceFormat.format,
+			.components = {
+				.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.a = VK_COMPONENT_SWIZZLE_IDENTITY
+			},
+			.subresourceRange = {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+			}
+		};
+
+		if (vkCreateImageView(
+			device.GetLogicalDevice(),
+			&createInfo,
+			nullptr,
+			&swapChainImageViews[i]) != VK_SUCCESS
+			) {
+			throw std::runtime_error("failed to create image views!");
+		}
+	}
+
+	std::vector<vks::Framebuffer> swapChainFramebuffers;
+	swapChainFramebuffers.reserve(swapChainImageViews.size());
+
+	for (size_t i = 0; i < swapChainImageViews.size(); i++)
+	{
+		swapChainFramebuffers.emplace_back(
+			device.GetLogicalDevice(),
+			vks::FramebufferDesc{
+				.attachments = std::to_array({ swapChainImageViews[i] }),
+				.swapChain = *swapChain,
+				.renderPass = renderPass->GetHandle()
+			}
+		);
+	}
+
 	// Instead of handling the surface creation inside of vks::Instance, we could create a platform-agnostic vulkan instead just like that:
 	/*
 	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
@@ -144,54 +196,17 @@ int main()
 
 	while (!glfwWindowShouldClose(window))
 	{
-		// Retrieve swap chain images and use them for rendering operations
-		const auto& swapChainImages = swapChain->GetImages();
-		const auto& swapChainDesc = swapChain->GetDesc();
-
-		std::vector<VkImageView> swapChainImageViews(swapChainImages.size());
-		for (size_t i = 0; i < swapChainImages.size(); i++)
-		{
-			VkImageViewCreateInfo createInfo{
-				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-				.image = swapChainImages[i],
-				.viewType = VK_IMAGE_VIEW_TYPE_2D,
-				.format = swapChainDesc.surfaceFormat.format,
-				.components = {
-					.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-					.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-					.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-					.a = VK_COMPONENT_SWIZZLE_IDENTITY
-				},
-				.subresourceRange = {
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = 1,
-					.baseArrayLayer = 0,
-					.layerCount = 1
-				}
-			};
-
-			if (vkCreateImageView(
-				device.GetLogicalDevice(),
-				&createInfo,
-				nullptr,
-				&swapChainImageViews[i]) != VK_SUCCESS
-			) {
-				throw std::runtime_error("failed to create image views!");
-			}
-		}
-
 		// Draw things here
 
-		for (auto imageView : swapChainImageViews)
-		{
-			vkDestroyImageView(device.GetLogicalDevice(), imageView, nullptr);
-		}
-
 		glfwPollEvents();
-
 	}
 
+	for (auto imageView : swapChainImageViews)
+	{
+		vkDestroyImageView(device.GetLogicalDevice(), imageView, nullptr);
+	}
+
+	swapChainFramebuffers.clear();
 	renderPass.reset();
 	graphicsPipeline.reset();
 	fragmentModule.reset();
