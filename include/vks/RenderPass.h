@@ -14,21 +14,16 @@
 
 namespace vks
 {
-	struct RenderPassDesc
-	{
-		SwapChain& swapChain;
-	};
-
 	class RenderPass
 	{
 	public:
 		/**
-		* Creates a shader module
+		* Creates a render pass
 		*/
-		RenderPass(VkDevice p_device, const RenderPassDesc& p_renderPassDesc);
+		RenderPass(VkDevice p_device, VkFormat p_format);
 
 		/**
-		* Destroys the shader module
+		* Destroys the render pass
 		*/
 		virtual ~RenderPass();
 

@@ -7,7 +7,6 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <vks/SwapChain.h>
 #include <vks/Device.h>
 
 namespace vks
@@ -15,8 +14,8 @@ namespace vks
 	struct FramebufferDesc
 	{
 		std::span<const VkImageView> attachments;
-		SwapChain& swapChain;
 		VkRenderPass renderPass = VK_NULL_HANDLE;
+		VkExtent2D extent;
 	};
 
 	class Framebuffer

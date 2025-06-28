@@ -31,10 +31,12 @@ namespace vks
 	SwapChain::SwapChain(
 		Device& p_device,
 		VkSurfaceKHR p_surface,
-		const utils::SwapChainDesc& p_desc
+		VkExtent2D p_extent,
+		const utils::SwapChainOptimalConfig& p_desc
 	) :
 		m_device(p_device),
-		m_desc(p_desc)
+		m_desc(p_desc),
+		m_extent(p_extent)
 	{
 		const auto& queueFamilyIndices = p_device.GetQueueFamilyIndices();
 		const auto indices = queueFamilyIndices.GetUniqueQueueIndices();
@@ -45,7 +47,7 @@ namespace vks
 			.minImageCount = CalculateSwapChainImageCount(m_desc.capabilities),
 			.imageFormat = m_desc.surfaceFormat.format,
 			.imageColorSpace = m_desc.surfaceFormat.colorSpace,
-			.imageExtent = m_desc.extent,
+			.imageExtent = m_extent,
 			.imageArrayLayers = 1, // always 1 unless we're developing a stereoscopic 3D application.
 
 			 // It is also possible that we'll render images to a separate image first to perform operations like post-processing.
@@ -83,14 +85,54 @@ namespace vks
 			throw std::runtime_error("failed to create swap chain!");
 		}
 
+		// Retrieve images
 		uint32_t imageCount;
 		vkGetSwapchainImagesKHR(m_device.GetLogicalDevice(), m_swapChain, &imageCount, nullptr);
 		m_images.resize(imageCount);
 		vkGetSwapchainImagesKHR(m_device.GetLogicalDevice(), m_swapChain, &imageCount, m_images.data());
+
+		// Create image views
+		m_imageViews.resize(m_images.size());
+		for (size_t i = 0; i < m_images.size(); i++)
+		{
+			VkImageViewCreateInfo createInfo{
+				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				.image = m_images[i],
+				.viewType = VK_IMAGE_VIEW_TYPE_2D,
+				.format = m_desc.surfaceFormat.format,
+				.components = {
+					.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.a = VK_COMPONENT_SWIZZLE_IDENTITY
+				},
+				.subresourceRange = {
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				}
+			};
+
+			if (vkCreateImageView(
+				m_device.GetLogicalDevice(),
+				&createInfo,
+				nullptr,
+				&m_imageViews[i]) != VK_SUCCESS
+				) {
+				throw std::runtime_error("failed to create image views!");
+			}
+		}
 	}
 
 	SwapChain::~SwapChain()
 	{
+		for (auto imageView : m_imageViews)
+		{
+			vkDestroyImageView(m_device.GetLogicalDevice(), imageView, nullptr);
+		}
+
 		vkDestroySwapchainKHR(m_device.GetLogicalDevice(), m_swapChain, nullptr);
 	}
 
@@ -134,8 +176,33 @@ namespace vks
 		return m_images;
 	}
 
-	const utils::SwapChainDesc& SwapChain::GetDesc() const
+	const utils::SwapChainOptimalConfig& SwapChain::GetDesc() const
 	{
 		return m_desc;
+	}
+
+	VkExtent2D SwapChain::GetExtent() const
+	{
+		return m_extent;
+	}
+
+	std::vector<vks::Framebuffer> SwapChain::CreateFramebuffers(VkRenderPass p_renderPass)
+	{
+		std::vector<vks::Framebuffer> framebuffers;
+		framebuffers.reserve(m_imageViews.size());
+
+		for (size_t i = 0; i < m_imageViews.size(); i++)
+		{
+			framebuffers.emplace_back(
+				m_device.GetLogicalDevice(),
+				vks::FramebufferDesc{
+					.attachments = std::to_array({ m_imageViews[i] }),
+					.renderPass = p_renderPass,
+					.extent = m_extent
+				}
+			);
+		}
+
+		return framebuffers;
 	}
 }

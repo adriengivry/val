@@ -14,15 +14,13 @@ namespace vks
 	Framebuffer::Framebuffer(VkDevice p_device, const FramebufferDesc& p_desc) :
 		m_device(p_device)
 	{
-		const auto& swapChainDesc = p_desc.swapChain.GetDesc();
-
 		VkFramebufferCreateInfo framebufferInfo{
 			.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 			.renderPass = p_desc.renderPass,
 			.attachmentCount = 1,
 			.pAttachments = p_desc.attachments.data(),
-			.width = swapChainDesc.extent.width,
-			.height = swapChainDesc.extent.height,
+			.width = p_desc.extent.width,
+			.height = p_desc.extent.height,
 			.layers = 1
 		};
 

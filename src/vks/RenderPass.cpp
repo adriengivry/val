@@ -11,13 +11,11 @@
 
 namespace vks
 {
-	RenderPass::RenderPass(VkDevice p_device, const RenderPassDesc& p_desc) :
+	RenderPass::RenderPass(VkDevice p_device, VkFormat p_format) :
 		m_device(p_device)
 	{
-		const auto& swapChainDesc = p_desc.swapChain.GetDesc();
-
 		VkAttachmentDescription colorAttachment{
-			.format = swapChainDesc.surfaceFormat.format,
+			.format = p_format,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
 			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,

@@ -19,7 +19,6 @@ namespace vks
 	{
 		// Collect shader stages
 		const auto stages = p_desc.program.GetAssembledStages();
-		const auto& swapChainDesc = p_desc.swapChain.GetDesc();
 
 		const auto dynamicStates = std::to_array({
 			VK_DYNAMIC_STATE_VIEWPORT,
@@ -56,29 +55,12 @@ namespace vks
 			.primitiveRestartEnable = VK_FALSE
 		};
 
-		VkViewport viewport{
-			.x = 0.0f,
-			.y = 0.0f,
-			.width = static_cast<float>(swapChainDesc.extent.width),
-			.height = static_cast<float>(swapChainDesc.extent.height),
-			.minDepth = 0.0f,
-			.maxDepth = 1.0f
-		};
-
-		VkRect2D scissor{
-			.offset = { 0, 0 },
-			.extent = swapChainDesc.extent
-		};
-
-		// Since the dynamic state has viewport and scissor, the actual viewport(s) and scissor rectangle(s)
-		// will be set up at drawing time.
-		// Using a viewport state instead will make this pipeline immutable.
 		VkPipelineViewportStateCreateInfo viewportState{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
 			.viewportCount = 1,
-			.pViewports = &viewport,
+			.pViewports = VK_NULL_HANDLE, // Dynamic viewport (VK_DYNAMIC_STATE_VIEWPORT)
 			.scissorCount = 1,
-			.pScissors = &scissor
+			.pScissors = VK_NULL_HANDLE // Dynamic scissor (VK_DYNAMIC_STATE_SCISSOR)
 		};
 
 		VkPipelineRasterizationStateCreateInfo rasterizationState{

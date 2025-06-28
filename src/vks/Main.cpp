@@ -93,26 +93,6 @@ int main()
 	vks::Device& device = deviceManager->GetSuitableDevice();
 	device.CreateLogicalDevice(instance->GetValidationLayers());
 
-	// Can be outside of the render loop, since the window is marked as non-resizable.
-	// If this were to change, this should be evaluated each frame, and the swap chain would
-	// need to be recreated.
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-
-	vks::utils::SwapChainDesc swapChainDesc = vks::utils::SwapChainUtils::CreateSwapChainDesc(
-		device.GetSwapChainSupportDetails(),
-		VkExtent2D{
-			static_cast<uint32_t>(width),
-			static_cast<uint32_t>(height)
-		}
-	);
-
-	std::unique_ptr<vks::SwapChain> swapChain = std::make_unique<vks::SwapChain>(
-		device,
-		surface->GetHandle(),
-		swapChainDesc
-	);
-
 	std::unique_ptr<vks::ShaderModule> vertexModule = std::make_unique<vks::ShaderModule>(
 		device.GetLogicalDevice(),
 		vks::utils::ShaderUtils::ReadShaderFile("assets/shaders/foo.vert.spv")
@@ -131,72 +111,46 @@ int main()
 		fragmentStage
 	}));
 
+	// Doesn't change even when the swap chain is recreated
+	vks::utils::SwapChainOptimalConfig swapChainOptimalConfig = vks::utils::SwapChainUtils::CalculateSwapChainOptimalConfig(
+		device.GetSwapChainSupportDetails()
+	);
+
 	std::unique_ptr<vks::RenderPass> renderPass = std::make_unique<vks::RenderPass>(
 		device.GetLogicalDevice(),
-		vks::RenderPassDesc{
-			.swapChain = *swapChain
-		}
+		swapChainOptimalConfig.surfaceFormat.format
 	);
 
 	std::unique_ptr<vks::GraphicsPipeline> graphicsPipeline = std::make_unique<vks::GraphicsPipeline>(
 		device.GetLogicalDevice(),
 		vks::GraphicsPipelineDesc{
 			.program = program,
-			.swapChain = *swapChain,
 			.renderPass = *renderPass
 		}
 	);
 
-	// Retrieve swap chain images and use them for rendering operations
-	const auto& swapChainImages = swapChain->GetImages();
+	// Can be outside of the render loop, since the window is marked as non-resizable.
+	// If this were to change, this should be evaluated each frame, and the swap chain would
+	// need to be recreated.
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
 
-	std::vector<VkImageView> swapChainImageViews(swapChainImages.size());
-	for (size_t i = 0; i < swapChainImages.size(); i++)
-	{
-		VkImageViewCreateInfo createInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = swapChainImages[i],
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = swapChainDesc.surfaceFormat.format,
-			.components = {
-				.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-				.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-				.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-				.a = VK_COMPONENT_SWIZZLE_IDENTITY
-			},
-			.subresourceRange = {
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1
-			}
-		};
-
-		if (vkCreateImageView(
-			device.GetLogicalDevice(),
-			&createInfo,
-			nullptr,
-			&swapChainImageViews[i]) != VK_SUCCESS
-			) {
-			throw std::runtime_error("failed to create image views!");
+	VkExtent2D extent = vks::utils::SwapChainUtils::CalculateSwapExtent(
+		swapChainOptimalConfig.capabilities,
+		VkExtent2D{
+			static_cast<uint32_t>(width),
+			static_cast<uint32_t>(height)
 		}
-	}
+	);
 
-	std::vector<vks::Framebuffer> swapChainFramebuffers;
-	swapChainFramebuffers.reserve(swapChainImageViews.size());
+	std::unique_ptr<vks::SwapChain> swapChain = std::make_unique<vks::SwapChain>(
+		device,
+		surface->GetHandle(),
+		extent,
+		swapChainOptimalConfig
+	);
 
-	for (size_t i = 0; i < swapChainImageViews.size(); i++)
-	{
-		swapChainFramebuffers.emplace_back(
-			device.GetLogicalDevice(),
-			vks::FramebufferDesc{
-				.attachments = std::to_array({ swapChainImageViews[i] }),
-				.swapChain = *swapChain,
-				.renderPass = renderPass->GetHandle()
-			}
-		);
-	}
+	std::vector<vks::Framebuffer> framebuffers = swapChain->CreateFramebuffers(renderPass->GetHandle());
 
 	const uint8_t k_maxFramesInFlight = 2;
 	uint8_t currentFrameIndex = 0;
@@ -232,7 +186,6 @@ int main()
 			device.GetLogicalDevice(),
 			std::to_array<const std::reference_wrapper<vks::sync::Fence>>({ *frameSyncObjects.inFlightFence })
 		);
-		inFlightFenceWaitGroup.reset();
 
 		try
 		{
@@ -240,14 +193,47 @@ int main()
 		}
 		catch (vks::OutOfDateSwapChain)
 		{
+			int width = 0, height = 0;
+			glfwGetFramebufferSize(window, &width, &height);
+			/*
+			while (width == 0 || height == 0)
+			{
+				glfwGetFramebufferSize(window, &width, &height);
+				glfwWaitEvents();
+			}
+			*/
+
+			VkExtent2D newExtent = vks::utils::SwapChainUtils::CalculateSwapExtent(
+				swapChainOptimalConfig.capabilities,
+				VkExtent2D{
+					static_cast<uint32_t>(width),
+					static_cast<uint32_t>(height)
+				}
+			);
+
+			vkDeviceWaitIdle(device.GetLogicalDevice());
+
+			framebuffers.clear();
+			swapChain.reset();
+
 			// Recreate the swapchain
+			swapChain = std::make_unique<vks::SwapChain>(
+				device,
+				surface->GetHandle(),
+				newExtent,
+				swapChainOptimalConfig
+			);
+
+			framebuffers = swapChain->CreateFramebuffers(renderPass->GetHandle());
 			continue;
 		}
+
+		inFlightFenceWaitGroup.reset();
 
 		commandBuffer.Reset();
 		commandBuffer.Begin();
 
-		renderPass->Begin(commandBuffer, swapChainFramebuffers[swapImageIndex], swapChainDesc.extent);
+		renderPass->Begin(commandBuffer, framebuffers[swapImageIndex], swapChain->GetExtent());
 
 		vkCmdBindPipeline(commandBuffer.GetHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->GetHandle());
 
@@ -256,8 +242,8 @@ int main()
 		VkViewport viewport{
 			.x = 0.0f,
 			.y = 0.0f,
-			.width = static_cast<float>(swapChainDesc.extent.width),
-			.height = static_cast<float>(swapChainDesc.extent.height),
+			.width = static_cast<float>(swapChain->GetExtent().width),
+			.height = static_cast<float>(swapChain->GetExtent().height),
 			.minDepth = 0.0f,
 			.maxDepth = 1.0f
 		};
@@ -265,7 +251,7 @@ int main()
 
 		VkRect2D scissor{
 			.offset = { 0, 0 },
-			.extent = swapChainDesc.extent
+			.extent = swapChain->GetExtent()
 		};
 		vkCmdSetScissor(commandBuffer.GetHandle(), 0, 1, &scissor);
 
@@ -319,11 +305,6 @@ int main()
 	// To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window.
 	vkDeviceWaitIdle(device.GetLogicalDevice());
 
-	for (auto imageView : swapChainImageViews)
-	{
-		vkDestroyImageView(device.GetLogicalDevice(), imageView, nullptr);
-	}
-
 	for (uint8_t i = 0; i < k_maxFramesInFlight; ++i)
 	{
 		frameSyncObjectsArray[i].imageAvailableSemaphore.reset();
@@ -332,7 +313,7 @@ int main()
 	}
 
 	commandPool.reset();
-	swapChainFramebuffers.clear();
+	framebuffers.clear();
 	renderPass.reset();
 	graphicsPipeline.reset();
 	fragmentModule.reset();

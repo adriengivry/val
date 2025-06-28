@@ -10,6 +10,7 @@
 #include <vks/utils/SwapChainUtils.h>
 #include <vks/sync/Semaphore.h>
 #include <vks/sync/Fence.h>
+#include <vks/Framebuffer.h>
 #include <vks/Device.h>
 #include <stdexcept>
 
@@ -30,7 +31,8 @@ namespace vks
 		SwapChain(
 			Device& p_device,
 			VkSurfaceKHR p_surface,
-			const utils::SwapChainDesc& p_desc
+			VkExtent2D p_extent,
+			const utils::SwapChainOptimalConfig& p_desc
 		);
 
 		/**
@@ -61,12 +63,24 @@ namespace vks
 		/**
 		* Returns the swap chain desc
 		*/
-		const utils::SwapChainDesc& GetDesc() const;
+		const utils::SwapChainOptimalConfig& GetDesc() const;
+
+		/**
+		* Returns the swap chain extent
+		*/
+		VkExtent2D GetExtent() const;
+
+		/**
+		* Create framebuffers for each image
+		*/
+		std::vector<vks::Framebuffer> CreateFramebuffers(VkRenderPass p_renderPass);
 
 	private:
 		Device& m_device;
-		utils::SwapChainDesc m_desc;
+		utils::SwapChainOptimalConfig m_desc;
+		VkExtent2D m_extent;
 		std::vector<VkImage> m_images;
+		std::vector<VkImageView> m_imageViews;
 		VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
 	};
 }

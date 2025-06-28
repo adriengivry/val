@@ -16,7 +16,6 @@ namespace vks
 	struct GraphicsPipelineDesc
 	{
 		ShaderProgram& program;
-		SwapChain& swapChain;
 		RenderPass& renderPass;
 	};
 

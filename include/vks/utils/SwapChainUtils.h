@@ -18,12 +18,11 @@ namespace vks::utils
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
-	struct SwapChainDesc
+	struct SwapChainOptimalConfig
 	{
 		VkSurfaceCapabilitiesKHR capabilities;
 		VkSurfaceFormatKHR surfaceFormat;
 		VkPresentModeKHR presentMode;
-		VkExtent2D extent;
 	};
 
 	class SwapChainUtils
@@ -35,8 +34,13 @@ namespace vks::utils
 		static SwapChainSupportDetails QuerySwapChainDetails(VkPhysicalDevice device, VkSurfaceKHR p_surface);
 
 		/**
-		* Create optimal swap chain desc (input for swap chain creation)
+		* Create optimal swap chain config (input for swap chain creation)
 		*/
-		static SwapChainDesc CreateSwapChainDesc(const SwapChainSupportDetails& p_details, VkExtent2D p_windowExtent);
+		static SwapChainOptimalConfig CalculateSwapChainOptimalConfig(const SwapChainSupportDetails& p_details);
+
+		/**
+		* Calculate optimal swap chain images extents
+		*/
+		static VkExtent2D CalculateSwapExtent(VkSurfaceCapabilitiesKHR p_capabilities, VkExtent2D p_windowExtent);
 	};
 }
