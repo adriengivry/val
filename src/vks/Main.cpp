@@ -283,7 +283,7 @@ int main()
 				output.push_back(semaphore.get().GetHandle());
 			}
 			return output;
-		}(std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *frameSyncObjects.renderFinishedSemaphore }));
+		}(std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({*frameSyncObjects.renderFinishedSemaphore }));
 
 		VkSwapchainKHR swapChains[] = { swapChain->GetHandle() };
 
@@ -297,6 +297,9 @@ int main()
 			.pResults = nullptr // (optional) allows to specify an array of VkResult values to check for every individual swap chain if presentation was successful. 
 		};
 
+		// Note: there is an error with our semaphores that can be addressed with:
+		// https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
+		// It seems like the debug validation layer didn't use to pick up this error when vulkan-tutorial was written.
 		vkQueuePresentKHR(device.GetPresentQueue(), &presentInfo);
 
 		currentFrameIndex = (currentFrameIndex + 1) % k_maxFramesInFlight;
