@@ -37,28 +37,40 @@ namespace vks
 		vkDestroyCommandPool(m_device.GetLogicalDevice(), m_handle, nullptr);
 	}
 
-	CommandBuffer& CommandPool::AllocateCommandBuffer(VkCommandBufferLevel p_level)
+	std::vector<std::reference_wrapper<CommandBuffer>> CommandPool::AllocateCommandBuffers(uint32_t p_count, VkCommandBufferLevel p_level)
 	{
-		VkCommandBuffer commandBuffer;
+		std::vector<std::reference_wrapper<CommandBuffer>> output;
+		output.reserve(p_count);
+		m_commandBuffers.reserve(m_commandBuffers.size() + p_count);
 
 		VkCommandBufferAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 			.commandPool = m_handle,
 			.level = p_level,
-			.commandBufferCount = 1
+			.commandBufferCount = p_count
 		};
+
+		std::vector<VkCommandBuffer> allocatedCommandBuffers(p_count);
 
 		if (vkAllocateCommandBuffers(
 			m_device.GetLogicalDevice(),
 			&allocInfo,
-			&commandBuffer) != VK_SUCCESS
+			allocatedCommandBuffers.data()) != VK_SUCCESS
 		) {
 			throw std::runtime_error("failed to allocate command buffer!");
 		}
 
-		return m_commandBuffers.emplace_back(CommandBuffer{
-			commandBuffer
-		});
+
+		for (auto allocatedCommandBuffer : allocatedCommandBuffers)
+		{
+			output.emplace_back(
+				m_commandBuffers.emplace_back(CommandBuffer{
+					allocatedCommandBuffer
+				})
+			);
+		}
+
+		return output;
 	}
 
 	VkCommandPool CommandPool::GetHandle() const

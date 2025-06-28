@@ -198,12 +198,26 @@ int main()
 		);
 	}
 
-	std::unique_ptr<vks::CommandPool> commandPool = std::make_unique<vks::CommandPool>(device);
-	vks::CommandBuffer& commandBuffer = commandPool->AllocateCommandBuffer();
+	const uint8_t k_maxFramesInFlight = 2;
+	uint8_t currentFrameIndex = 0;
 
-	std::unique_ptr<vks::sync::Semaphore> imageAvailableSemaphore = std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice());
-	std::unique_ptr<vks::sync::Semaphore> renderFinishedSemaphore = std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice());
-	std::unique_ptr<vks::sync::Fence> inFlightFence = std::make_unique<vks::sync::Fence>(device.GetLogicalDevice(), true);
+	std::unique_ptr<vks::CommandPool> commandPool = std::make_unique<vks::CommandPool>(device);
+	std::vector<std::reference_wrapper<vks::CommandBuffer>> commandBuffers = commandPool->AllocateCommandBuffers(k_maxFramesInFlight);
+
+	struct FrameSyncObjects
+	{
+		std::unique_ptr<vks::sync::Semaphore> imageAvailableSemaphore;
+		std::unique_ptr<vks::sync::Semaphore> renderFinishedSemaphore;
+		std::unique_ptr<vks::sync::Fence> inFlightFence;
+	};
+
+	std::array<FrameSyncObjects, k_maxFramesInFlight> frameSyncObjectsArray;
+	for (uint8_t i = 0; i < k_maxFramesInFlight; ++i)
+	{
+		frameSyncObjectsArray[i].imageAvailableSemaphore = std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice());
+		frameSyncObjectsArray[i].renderFinishedSemaphore = std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice());
+		frameSyncObjectsArray[i].inFlightFence = std::make_unique<vks::sync::Fence>(device.GetLogicalDevice(), true);
+	}
 
 	uint32_t swapImageIndex = 0;
 
@@ -211,13 +225,16 @@ int main()
 	{
 		glfwPollEvents();
 
+		vks::CommandBuffer& commandBuffer = commandBuffers[currentFrameIndex].get();
+		FrameSyncObjects& frameSyncObjects = frameSyncObjectsArray[currentFrameIndex];
+
 		auto inFlightFenceWaitGroup = std::make_unique<vks::sync::FenceWaitGroup>(
 			device.GetLogicalDevice(),
-			std::to_array<const std::reference_wrapper<vks::sync::Fence>>({ *inFlightFence })
+			std::to_array<const std::reference_wrapper<vks::sync::Fence>>({ *frameSyncObjects.inFlightFence })
 		);
 		inFlightFenceWaitGroup.reset();
 
-		uint32_t swapImageIndex = swapChain->AcquireNextImage(*imageAvailableSemaphore);
+		uint32_t swapImageIndex = swapChain->AcquireNextImage(*frameSyncObjects.imageAvailableSemaphore);
 
 		commandBuffer.Reset();
 		commandBuffer.Begin();
@@ -253,9 +270,9 @@ int main()
 		vks::utils::CommandBufferUtils::SubmitCommandBuffers(
 			device.GetGraphicsQueue(),
 			std::to_array<const std::reference_wrapper<vks::CommandBuffer>>({ commandBuffer }),
-			std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *imageAvailableSemaphore }),
-			std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *renderFinishedSemaphore }),
-			*inFlightFence
+			std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *frameSyncObjects.imageAvailableSemaphore }),
+			std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *frameSyncObjects.renderFinishedSemaphore }),
+			*frameSyncObjects.inFlightFence
 		);
 
 		auto signalSemaphores = [](std::span<const std::reference_wrapper<vks::sync::Semaphore>> p_semaphores) {
@@ -266,7 +283,7 @@ int main()
 				output.push_back(semaphore.get().GetHandle());
 			}
 			return output;
-		}(std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *renderFinishedSemaphore }));
+		}(std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *frameSyncObjects.renderFinishedSemaphore }));
 
 		VkSwapchainKHR swapChains[] = { swapChain->GetHandle() };
 
@@ -281,6 +298,8 @@ int main()
 		};
 
 		vkQueuePresentKHR(device.GetPresentQueue(), &presentInfo);
+
+		currentFrameIndex = (currentFrameIndex + 1) % k_maxFramesInFlight;
 	}
 
 	// Operations in drawFrame are asynchronous. That means that when we exit the loop in mainLoop,
@@ -294,9 +313,12 @@ int main()
 		vkDestroyImageView(device.GetLogicalDevice(), imageView, nullptr);
 	}
 
-	inFlightFence.reset();
-	renderFinishedSemaphore.reset();
-	imageAvailableSemaphore.reset();
+	for (uint8_t i = 0; i < k_maxFramesInFlight; ++i)
+	{
+		frameSyncObjectsArray[i].imageAvailableSemaphore.reset();
+		frameSyncObjectsArray[i].renderFinishedSemaphore.reset();
+		frameSyncObjectsArray[i].inFlightFence.reset();
+	}
 
 	commandPool.reset();
 	swapChainFramebuffers.clear();

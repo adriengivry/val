@@ -28,7 +28,7 @@ namespace vks
 		/**
 		* Allocates a command buffer from the command pool
 		*/
-		CommandBuffer& AllocateCommandBuffer(VkCommandBufferLevel p_level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+		std::vector<std::reference_wrapper<CommandBuffer>> AllocateCommandBuffers(uint32_t p_count, VkCommandBufferLevel p_level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
 		/**
 		* Returns the command pool handle
