@@ -100,12 +100,14 @@ namespace vks
 			.pClearValues = &clearColor
 		};
 
-		vkCmdBeginRenderPass(p_commandBuffer.GetHandle(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(m_currentCommandBuffer.value().get().GetHandle(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
-	void RenderPass::End(vks::CommandBuffer& p_commandBuffer)
+	void RenderPass::End()
 	{
-		vkCmdEndRenderPass(p_commandBuffer.GetHandle());
+		assert(m_currentCommandBuffer.has_value());
+		vkCmdEndRenderPass(m_currentCommandBuffer.value().get().GetHandle());
+		m_currentCommandBuffer.reset();
 	}
 
 }

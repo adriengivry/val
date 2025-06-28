@@ -205,15 +205,19 @@ int main()
 	std::unique_ptr<vks::sync::Semaphore> renderFinishedSemaphore = std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice());
 	std::unique_ptr<vks::sync::Fence> inFlightFence = std::make_unique<vks::sync::Fence>(device.GetLogicalDevice(), true);
 
+	uint32_t swapImageIndex = 0;
+
 	while (!glfwWindowShouldClose(window))
 	{
-		uint32_t swapImageIndex = swapChain->AcquireNextImage(*imageAvailableSemaphore);
+		glfwPollEvents();
 
 		auto inFlightFenceWaitGroup = std::make_unique<vks::sync::FenceWaitGroup>(
 			device.GetLogicalDevice(),
 			std::to_array<const std::reference_wrapper<vks::sync::Fence>>({ *inFlightFence })
 		);
 		inFlightFenceWaitGroup.reset();
+
+		uint32_t swapImageIndex = swapChain->AcquireNextImage(*imageAvailableSemaphore);
 
 		commandBuffer.Reset();
 		commandBuffer.Begin();
@@ -243,7 +247,7 @@ int main()
 		// Draw things here
 		vkCmdDraw(commandBuffer.GetHandle(), 3, 1, 0, 0);
 
-		renderPass->End(commandBuffer);
+		renderPass->End();
 		commandBuffer.End();
 
 		vks::utils::CommandBufferUtils::SubmitCommandBuffers(
@@ -277,9 +281,13 @@ int main()
 		};
 
 		vkQueuePresentKHR(device.GetPresentQueue(), &presentInfo);
-
-		glfwPollEvents();
 	}
+
+	// Operations in drawFrame are asynchronous. That means that when we exit the loop in mainLoop,
+	// drawing and presentation operations may still be going on.
+	// Cleaning up resources while that is happening is a bad idea.
+	// To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window.
+	vkDeviceWaitIdle(device.GetLogicalDevice());
 
 	for (auto imageView : swapChainImageViews)
 	{

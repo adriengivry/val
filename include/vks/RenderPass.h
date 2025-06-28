@@ -45,7 +45,7 @@ namespace vks
 		/**
 		* Ends the render pass
 		*/
-		void End(vks::CommandBuffer& p_commandBuffer);
+		void End();
 
 	private:
 		VkDevice m_device = VK_NULL_HANDLE;
