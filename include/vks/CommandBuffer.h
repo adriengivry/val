@@ -40,6 +40,40 @@ namespace vks
 		*/
 		void End();
 
+		/**
+		* Begin a render pass
+		*/
+		void BeginRenderPass(
+			VkRenderPass p_renderPass,
+			VkFramebuffer p_framebuffer,
+			VkExtent2D p_extent
+		);
+
+		/**
+		* End a render pass
+		*/
+		void EndRenderPass();
+
+		/**
+		* Bind a graphics pipeline
+		*/
+		void BindPipeline(VkPipelineBindPoint p_bindPoint, VkPipeline p_pipeline);
+
+		/**
+		* Set viewport
+		*/
+		void SetViewport(const VkViewport& p_viewport);
+
+		/**
+		* Set scissor
+		*/
+		void SetScissor(const VkRect2D& p_scissor);
+
+		/**
+		* Submit a draw command
+		*/
+		void Draw(uint32_t p_vertexCount, uint32_t p_instanceCount);
+
 	private:
 		CommandBuffer(VkCommandBuffer p_handle);
 

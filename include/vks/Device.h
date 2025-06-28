@@ -124,6 +124,11 @@ namespace vks
 			std::optional<uint64_t> p_timeout = std::nullopt
 		);
 
+		/**
+		* Wait idle
+		*/
+		void WaitIdle();
+
 	private:
 		bool m_suitable = false;
 		std::vector<utils::RequestedExtension> m_requestedExtensions;

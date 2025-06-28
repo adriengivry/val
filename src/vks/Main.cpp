@@ -208,7 +208,7 @@ int main()
 				}
 			);
 
-			vkDeviceWaitIdle(device.GetLogicalDevice());
+			device.WaitIdle();
 
 			framebuffers.clear();
 			swapChain.reset();
@@ -230,32 +230,36 @@ int main()
 		commandBuffer.Reset();
 		commandBuffer.Begin();
 
-		renderPass->Begin(commandBuffer, framebuffers[swapImageIndex], swapChain->GetExtent());
+		commandBuffer.BeginRenderPass(
+			renderPass->GetHandle(),
+			framebuffers[swapImageIndex].GetHandle(),
+			swapChain->GetExtent()
+		);
 
-		vkCmdBindPipeline(commandBuffer.GetHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->GetHandle());
+		commandBuffer.BindPipeline(
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			graphicsPipeline->GetHandle()
+		);
 
 		// As noted in the fixed functions chapter, we did specify viewport and scissor state for this pipeline to be dynamic.
 		// So we need to set them in the command buffer before issuing our draw command:
-		VkViewport viewport{
+		commandBuffer.SetViewport({
 			.x = 0.0f,
 			.y = 0.0f,
 			.width = static_cast<float>(swapChain->GetExtent().width),
 			.height = static_cast<float>(swapChain->GetExtent().height),
 			.minDepth = 0.0f,
 			.maxDepth = 1.0f
-		};
-		vkCmdSetViewport(commandBuffer.GetHandle(), 0, 1, &viewport);
+		});
 
-		VkRect2D scissor{
+		commandBuffer.SetScissor({
 			.offset = { 0, 0 },
 			.extent = swapChain->GetExtent()
-		};
-		vkCmdSetScissor(commandBuffer.GetHandle(), 0, 1, &scissor);
+		});
 
-		// Draw things here
-		vkCmdDraw(commandBuffer.GetHandle(), 3, 1, 0, 0);
+		commandBuffer.Draw(3, 1);
 
-		renderPass->End();
+		commandBuffer.EndRenderPass();
 		commandBuffer.End();
 
 		vks::utils::CommandBufferUtils::SubmitCommandBuffers(

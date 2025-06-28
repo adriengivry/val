@@ -32,19 +32,8 @@ namespace vks
 		*/
 		VkRenderPass GetHandle() const;
 
-		/**
-		* Begins the render pass
-		*/
-		void Begin(vks::CommandBuffer& p_commandBuffer, vks::Framebuffer& p_framebuffer, VkExtent2D p_extent);
-
-		/**
-		* Ends the render pass
-		*/
-		void End();
-
 	private:
 		VkDevice m_device = VK_NULL_HANDLE;
 		VkRenderPass m_handle = VK_NULL_HANDLE;
-		std::optional<std::reference_wrapper<CommandBuffer>> m_currentCommandBuffer;
 	};
 }

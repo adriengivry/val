@@ -299,4 +299,9 @@ namespace vks
 			p_timeout.value_or(std::numeric_limits<uint64_t>::max())
 		);
 	}
+
+	void Device::WaitIdle()
+	{
+		vkDeviceWaitIdle(m_logicalDevice);
+	}
 }
