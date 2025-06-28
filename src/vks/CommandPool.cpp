@@ -5,6 +5,8 @@
 */
 
 #include <vks/CommandPool.h>
+#include <vks/CommandBuffer.h>
+#include <vks/Device.h>
 #include <cassert>
 #include <iostream>
 #include <stdexcept>

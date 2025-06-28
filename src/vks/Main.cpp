@@ -192,13 +192,13 @@ int main()
 		{
 			int width = 0, height = 0;
 			glfwGetFramebufferSize(window, &width, &height);
-			/*
+
+			// To handle when the window is minimized, since 0 isn't a valid size for a swap chain
 			while (width == 0 || height == 0)
 			{
 				glfwGetFramebufferSize(window, &width, &height);
 				glfwWaitEvents();
 			}
-			*/
 
 			VkExtent2D newExtent = vks::utils::SwapChainUtils::CalculateSwapExtent(
 				swapChainOptimalConfig.capabilities,
@@ -262,40 +262,18 @@ int main()
 		commandBuffer.EndRenderPass();
 		commandBuffer.End();
 
-		vks::utils::CommandBufferUtils::SubmitCommandBuffers(
-			device.GetGraphicsQueue(),
+		device.GetGraphicsQueue().Submit(
 			{ commandBuffer },
 			{ *frameSyncObjects.imageAvailableSemaphore },
 			{ *frameSyncObjects.renderFinishedSemaphore },
 			*frameSyncObjects.inFlightFence
 		);
 
-		auto signalSemaphores = [](std::span<const std::reference_wrapper<vks::sync::Semaphore>> p_semaphores) {
-			std::vector<VkSemaphore> output;
-			output.reserve(p_semaphores.size());
-			for (const auto& semaphore : p_semaphores)
-			{
-				output.push_back(semaphore.get().GetHandle());
-			}
-			return output;
-		}(std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({*frameSyncObjects.renderFinishedSemaphore }));
-
-		VkSwapchainKHR swapChains[] = { swapChain->GetHandle() };
-
-		VkPresentInfoKHR presentInfo{
-			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-			.waitSemaphoreCount = static_cast<uint32_t>(signalSemaphores.size()),
-			.pWaitSemaphores = signalSemaphores.data(),
-			.swapchainCount = 1,
-			.pSwapchains = swapChains,
-			.pImageIndices = &swapImageIndex,
-			.pResults = nullptr // (optional) allows to specify an array of VkResult values to check for every individual swap chain if presentation was successful. 
-		};
-
-		// Note: there is an error with our semaphores that can be addressed with:
-		// https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
-		// It seems like the debug validation layer didn't use to pick up this error when vulkan-tutorial was written.
-		vkQueuePresentKHR(device.GetPresentQueue(), &presentInfo);
+		device.GetPresentQueue().Present(
+			{ *frameSyncObjects.renderFinishedSemaphore },
+			*swapChain,
+			swapImageIndex
+		);
 
 		currentFrameIndex = (currentFrameIndex + 1) % k_maxFramesInFlight;
 	}
@@ -304,7 +282,7 @@ int main()
 	// drawing and presentation operations may still be going on.
 	// Cleaning up resources while that is happening is a bad idea.
 	// To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window.
-	vkDeviceWaitIdle(device.GetLogicalDevice());
+	device.WaitIdle();
 
 	for (uint8_t i = 0; i < k_maxFramesInFlight; ++i)
 	{

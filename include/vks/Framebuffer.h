@@ -7,7 +7,8 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <vks/Device.h>
+#include <span>
+#include <optional>
 
 namespace vks
 {

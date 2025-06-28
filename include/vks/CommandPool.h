@@ -7,11 +7,13 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <vks/Device.h>
-#include <vks/CommandBuffer.h>
+#include <vector>
 
 namespace vks
 {
+	class CommandBuffer;
+	class Device;
+
 	class CommandPool
 	{
 	public:

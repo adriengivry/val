@@ -11,11 +11,12 @@
 #include <vks/sync/Semaphore.h>
 #include <vks/sync/Fence.h>
 #include <vks/Framebuffer.h>
-#include <vks/Device.h>
 #include <stdexcept>
 
 namespace vks
 {
+	class Device;
+
 	class OutOfDateSwapChain : public std::runtime_error
 	{
 	public:

@@ -5,6 +5,7 @@
 */
 
 #include <vks/SwapChain.h>
+#include <vks/Device.h>
 #include <stdexcept>
 
 namespace

@@ -103,6 +103,13 @@ namespace vks
 		m_requestedExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME, true);
 	}
 
+	Device::Device(const Device& p_rhs)
+	{
+		throw std::runtime_error(
+			"Should not copy a device! This is a workaround since the compiler expects one for the std::vector<Device>"
+		);
+	}
+
 	Device::~Device()
 	{
 		vkDestroyDevice(m_logicalDevice, nullptr);
@@ -191,8 +198,19 @@ namespace vks
 			throw std::runtime_error("failed to create logical device!");
 		}
 
-		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
-		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.presentFamily.value(), 0, &m_presentQueue);
+		VkQueue graphicsQueue, presentQueue;
+		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &graphicsQueue);
+		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.presentFamily.value(), 0, &presentQueue);
+
+		m_graphicsQueue = std::make_unique<Queue>(
+			m_logicalDevice,
+			graphicsQueue
+		);
+
+		m_presentQueue = std::make_unique<Queue>(
+			m_logicalDevice,
+			presentQueue
+		);
 	}
 
 	VkPhysicalDevice Device::GetPhysicalDevice() const
@@ -208,20 +226,20 @@ namespace vks
 		return m_logicalDevice;
 	}
 
-	VkQueue Device::GetGraphicsQueue() const
+	Queue Device::GetGraphicsQueue() const
 	{
 		assert(m_suitable);
 		assert(m_logicalDevice != VK_NULL_HANDLE);
-		assert(m_graphicsQueue != VK_NULL_HANDLE);
-		return m_graphicsQueue;
+		assert(m_graphicsQueue);
+		return *m_graphicsQueue;
 	}
 
-	VkQueue Device::GetPresentQueue() const
+	Queue Device::GetPresentQueue() const
 	{
 		assert(m_suitable);
 		assert(m_logicalDevice != VK_NULL_HANDLE);
-		assert(m_presentQueue != VK_NULL_HANDLE);
-		return m_presentQueue;
+		assert(m_presentQueue);
+		return *m_presentQueue;
 	}
 
 	const utils::SwapChainSupportDetails& Device::GetSwapChainSupportDetails() const

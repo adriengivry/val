@@ -17,6 +17,7 @@
 #include <vks/utils/SwapChainUtils.h>
 #include <vks/sync/Fence.h>
 #include <vks/sync/Semaphore.h>
+#include <vks/Queue.h>
 #include <vulkan/vulkan.h>
 
 namespace vks
@@ -45,6 +46,11 @@ namespace vks
 		* Create a device instance from a physical device
 		*/
 		Device(VkPhysicalDevice p_physicalDevice, VkSurfaceKHR p_surface);
+
+		/**
+		* Copy constructor
+		*/
+		Device(const Device& p_rhs);
 
 		/**
 		* Destroys the device
@@ -81,13 +87,13 @@ namespace vks
 		* Returns the graphics queue associated with this logical device
 		* @note will assert if the device doesn't have a logical device associated
 		*/
-		VkQueue GetGraphicsQueue() const;
+		Queue GetGraphicsQueue() const;
 
 		/**
 		* Returns the present queue associated with this logical device
 		* @note will assert if the device doesn't have a logical device associated
 		*/
-		VkQueue GetPresentQueue() const;
+		Queue GetPresentQueue() const;
 
 		/**
 		* Returns swap chain support details for this physical device
@@ -137,8 +143,8 @@ namespace vks
 		VkPhysicalDeviceProperties m_physicalDeviceProperties;
 		VkPhysicalDeviceFeatures m_physicalDeviceFeatures;
 		VkDevice m_logicalDevice = VK_NULL_HANDLE;
-		VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-		VkQueue m_presentQueue = VK_NULL_HANDLE;
+		std::unique_ptr<Queue> m_graphicsQueue;
+		std::unique_ptr<Queue> m_presentQueue;
 		QueueFamilyIndices m_queueFamilyIndices;
 		VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 		utils::SwapChainSupportDetails m_swapChainSupportDetails;
