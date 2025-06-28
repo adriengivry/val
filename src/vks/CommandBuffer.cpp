@@ -21,6 +21,11 @@ namespace vks
 		return m_handle;
 	}
 
+	void CommandBuffer::Reset()
+	{
+		vkResetCommandBuffer(m_handle, 0);
+	}
+
 	void CommandBuffer::Begin()
 	{
 		VkCommandBufferBeginInfo beginInfo{

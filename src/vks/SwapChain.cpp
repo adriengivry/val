@@ -94,6 +94,34 @@ namespace vks
 		vkDestroySwapchainKHR(m_device.GetLogicalDevice(), m_swapChain, nullptr);
 	}
 
+	VkSwapchainKHR SwapChain::GetHandle() const
+	{
+		return m_swapChain;
+	}
+
+	uint32_t SwapChain::AcquireNextImage(
+		std::optional<std::reference_wrapper<sync::Semaphore>> p_semaphore,
+		std::optional<std::reference_wrapper<sync::Fence>> p_fence,
+		std::optional<uint64_t> p_timeout
+	)
+	{
+		uint32_t imageIndex;
+
+		if (vkAcquireNextImageKHR(
+			m_device.GetLogicalDevice(),
+			m_swapChain,
+			p_timeout.value_or(UINT64_MAX),
+			p_semaphore.has_value() ? p_semaphore->get().GetHandle() : VK_NULL_HANDLE,
+			p_fence.has_value() ? p_fence->get().GetHandle() : VK_NULL_HANDLE,
+			&imageIndex
+		) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to acquire next image");
+		}
+
+		return imageIndex;
+	}
+
 	const std::vector<VkImage>& SwapChain::GetImages() const
 	{
 		return m_images;

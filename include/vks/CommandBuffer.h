@@ -26,6 +26,11 @@ namespace vks
 		VkCommandBuffer GetHandle() const;
 
 		/**
+		* Resets the command buffer
+		*/
+		void Reset();
+
+		/**
 		* Begin recording commands
 		*/
 		void Begin();

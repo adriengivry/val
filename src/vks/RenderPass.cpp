@@ -41,12 +41,23 @@ namespace vks
 			.pColorAttachments = &colorAttachmentRef
 		};
 
+		VkSubpassDependency dependency{
+			.srcSubpass = VK_SUBPASS_EXTERNAL,
+			.dstSubpass = 0,
+			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.srcAccessMask = 0,
+			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		};
+
 		VkRenderPassCreateInfo createInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 			.attachmentCount = 1,
 			.pAttachments = &colorAttachment,
 			.subpassCount = 1,
 			.pSubpasses = &subpass,
+			.dependencyCount = 1,
+			.pDependencies = &dependency
 		};
 
 		if (vkCreateRenderPass(

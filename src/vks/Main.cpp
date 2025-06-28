@@ -32,9 +32,12 @@
 #include <vks/RenderPass.h>
 #include <vks/Framebuffer.h>
 #include <vks/CommandPool.h>
+#include <vks/sync/FenceWaitGroup.h>
+#include <vks/sync/SemaphoreWaitGroup.h>
 #include <vks/GraphicsPipeline.h>
 #include <vks/utils/ShaderUtils.h>
 #include <vks/utils/DeviceManager.h>
+#include <vks/utils/CommandBufferUtils.h>
 
 int main()
 {
@@ -122,6 +125,7 @@ int main()
 
 	vks::ShaderStage vertexStage(*vertexModule, VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT);
 	vks::ShaderStage fragmentStage(*fragmentModule, VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT);
+	// TODO: Double check we are not duplicating the shader program, but passing a ref
 	vks::ShaderProgram program(std::to_array({
 		vertexStage,
 		fragmentStage
@@ -197,10 +201,24 @@ int main()
 	std::unique_ptr<vks::CommandPool> commandPool = std::make_unique<vks::CommandPool>(device);
 	vks::CommandBuffer& commandBuffer = commandPool->AllocateCommandBuffer();
 
+	std::unique_ptr<vks::sync::Semaphore> imageAvailableSemaphore = std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice());
+	std::unique_ptr<vks::sync::Semaphore> renderFinishedSemaphore = std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice());
+	std::unique_ptr<vks::sync::Fence> inFlightFence = std::make_unique<vks::sync::Fence>(device.GetLogicalDevice(), true);
+
 	while (!glfwWindowShouldClose(window))
 	{
+		uint32_t swapImageIndex = swapChain->AcquireNextImage(*imageAvailableSemaphore);
+
+		auto inFlightFenceWaitGroup = std::make_unique<vks::sync::FenceWaitGroup>(
+			device.GetLogicalDevice(),
+			std::to_array<const std::reference_wrapper<vks::sync::Fence>>({ *inFlightFence })
+		);
+		inFlightFenceWaitGroup.reset();
+
+		commandBuffer.Reset();
 		commandBuffer.Begin();
-		renderPass->Begin(commandBuffer, swapChainFramebuffers[0], swapChainDesc.extent);
+
+		renderPass->Begin(commandBuffer, swapChainFramebuffers[swapImageIndex], swapChainDesc.extent);
 
 		vkCmdBindPipeline(commandBuffer.GetHandle(), VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->GetHandle());
 
@@ -228,6 +246,38 @@ int main()
 		renderPass->End(commandBuffer);
 		commandBuffer.End();
 
+		vks::utils::CommandBufferUtils::SubmitCommandBuffers(
+			device.GetGraphicsQueue(),
+			std::to_array<const std::reference_wrapper<vks::CommandBuffer>>({ commandBuffer }),
+			std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *imageAvailableSemaphore }),
+			std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *renderFinishedSemaphore }),
+			*inFlightFence
+		);
+
+		auto signalSemaphores = [](std::span<const std::reference_wrapper<vks::sync::Semaphore>> p_semaphores) {
+			std::vector<VkSemaphore> output;
+			output.reserve(p_semaphores.size());
+			for (const auto& semaphore : p_semaphores)
+			{
+				output.push_back(semaphore.get().GetHandle());
+			}
+			return output;
+		}(std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *renderFinishedSemaphore }));
+
+		VkSwapchainKHR swapChains[] = { swapChain->GetHandle() };
+
+		VkPresentInfoKHR presentInfo{
+			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			.waitSemaphoreCount = static_cast<uint32_t>(signalSemaphores.size()),
+			.pWaitSemaphores = signalSemaphores.data(),
+			.swapchainCount = 1,
+			.pSwapchains = swapChains,
+			.pImageIndices = &swapImageIndex,
+			.pResults = nullptr // (optional) allows to specify an array of VkResult values to check for every individual swap chain if presentation was successful. 
+		};
+
+		vkQueuePresentKHR(device.GetPresentQueue(), &presentInfo);
+
 		glfwPollEvents();
 	}
 
@@ -235,6 +285,10 @@ int main()
 	{
 		vkDestroyImageView(device.GetLogicalDevice(), imageView, nullptr);
 	}
+
+	inFlightFence.reset();
+	renderFinishedSemaphore.reset();
+	imageAvailableSemaphore.reset();
 
 	commandPool.reset();
 	swapChainFramebuffers.clear();

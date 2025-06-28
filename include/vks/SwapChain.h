@@ -8,6 +8,8 @@
 
 #include <vulkan/vulkan.h>
 #include <vks/utils/SwapChainUtils.h>
+#include <vks/sync/Semaphore.h>
+#include <vks/sync/Fence.h>
 #include <vks/Device.h>
 
 namespace vks
@@ -33,6 +35,15 @@ namespace vks
 		* Returns the underlying VkSwapchainKHR handle
 		*/
 		VkSwapchainKHR GetHandle() const;
+
+		/**
+		* Returns the index of the next image
+		*/
+		uint32_t AcquireNextImage(
+			std::optional<std::reference_wrapper<sync::Semaphore>> p_semaphore = std::nullopt,
+			std::optional<std::reference_wrapper<sync::Fence>> p_fence = std::nullopt,
+			std::optional<uint64_t> p_timeout = std::nullopt
+		);
 
 		/**
 		* Returns swap chain images
