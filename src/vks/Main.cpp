@@ -37,7 +37,6 @@
 #include <vks/GraphicsPipeline.h>
 #include <vks/utils/ShaderUtils.h>
 #include <vks/utils/DeviceManager.h>
-#include <vks/utils/CommandBufferUtils.h>
 
 int main()
 {

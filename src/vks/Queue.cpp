@@ -86,7 +86,10 @@ namespace vks
 		// Note: there is an error with our semaphores that can be addressed with:
 		// https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
 		// It seems like the debug validation layer didn't use to pick up this error when vulkan-tutorial was written.
-		vkQueuePresentKHR(m_handle, &presentInfo);
+		if (vkQueuePresentKHR(m_handle, &presentInfo) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to submit queue!");
+		}
 	}
 
 	VkQueue Queue::GetHandle() const
