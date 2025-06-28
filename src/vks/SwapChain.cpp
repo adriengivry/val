@@ -107,14 +107,21 @@ namespace vks
 	{
 		uint32_t imageIndex;
 
-		if (vkAcquireNextImageKHR(
+		VkResult result = vkAcquireNextImageKHR(
 			m_device.GetLogicalDevice(),
 			m_swapChain,
 			p_timeout.value_or(UINT64_MAX),
 			p_semaphore.has_value() ? p_semaphore->get().GetHandle() : VK_NULL_HANDLE,
 			p_fence.has_value() ? p_fence->get().GetHandle() : VK_NULL_HANDLE,
 			&imageIndex
-		) != VK_SUCCESS)
+		);
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			throw OutOfDateSwapChain();
+		}
+
+		if (result != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to acquire next image");
 		}

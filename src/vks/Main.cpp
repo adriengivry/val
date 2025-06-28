@@ -44,7 +44,7 @@ int main()
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	// glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 	GLFWwindow* window = glfwCreateWindow(800, 600, "vulkan-sandbox", nullptr, nullptr);
 
 	uint32_t glfwExtensionCount = 0;
@@ -234,7 +234,15 @@ int main()
 		);
 		inFlightFenceWaitGroup.reset();
 
-		uint32_t swapImageIndex = swapChain->AcquireNextImage(*frameSyncObjects.imageAvailableSemaphore);
+		try
+		{
+			uint32_t swapImageIndex = swapChain->AcquireNextImage(*frameSyncObjects.imageAvailableSemaphore);
+		}
+		catch (vks::OutOfDateSwapChain)
+		{
+			// Recreate the swapchain
+			continue;
+		}
 
 		commandBuffer.Reset();
 		commandBuffer.Begin();
