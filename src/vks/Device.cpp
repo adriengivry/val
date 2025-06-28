@@ -234,4 +234,69 @@ namespace vks
 	{
 		return m_queueFamilyIndices;
 	}
+
+	void Device::WaitForFences(
+		std::initializer_list<std::reference_wrapper<vks::sync::Fence>> p_fences,
+		bool p_waitAll,
+		std::optional<uint64_t> p_timeout
+	)
+	{
+		std::vector<VkFence> fences;
+		fences.reserve(p_fences.size());
+		for (const auto& fence : p_fences)
+		{
+			fences.push_back(fence.get().GetHandle());
+		}
+
+		vkWaitForFences(
+			m_logicalDevice,
+			static_cast<uint32_t>(fences.size()),
+			fences.data(),
+			p_waitAll,
+			p_timeout.value_or(std::numeric_limits<uint64_t>::max())
+		);
+	}
+
+	void Device::ResetFences(
+		std::initializer_list<std::reference_wrapper<vks::sync::Fence>> p_fences
+	)
+	{
+		std::vector<VkFence> fences;
+		fences.reserve(p_fences.size());
+		for (const auto& fence : p_fences)
+		{
+			fences.push_back(fence.get().GetHandle());
+		}
+
+		vkResetFences(
+			m_logicalDevice,
+			static_cast<uint32_t>(fences.size()),
+			fences.data()
+		);
+	}
+	void Device::WaitForSemaphores(
+		std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_semaphores,
+		bool p_waitAll,
+		std::optional<uint64_t> p_timeout
+	)
+	{
+		std::vector<VkSemaphore> semaphores;
+		semaphores.reserve(p_semaphores.size());
+		for (const auto& semaphore : p_semaphores)
+		{
+			semaphores.push_back(semaphore.get().GetHandle());
+		}
+
+		VkSemaphoreWaitInfo waitInfo{
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+			.semaphoreCount = static_cast<uint32_t>(semaphores.size()),
+			.pSemaphores = semaphores.data()
+		};
+
+		vkWaitSemaphores(
+			m_logicalDevice,
+			&waitInfo,
+			p_timeout.value_or(std::numeric_limits<uint64_t>::max())
+		);
+	}
 }

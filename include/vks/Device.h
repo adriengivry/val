@@ -15,6 +15,8 @@
 #include <vks/DebugMessenger.h>
 #include <vks/utils/ExtensionManager.h>
 #include <vks/utils/SwapChainUtils.h>
+#include <vks/sync/Fence.h>
+#include <vks/sync/Semaphore.h>
 #include <vulkan/vulkan.h>
 
 namespace vks
@@ -35,6 +37,7 @@ namespace vks
 		std::vector<uint32_t> GetUniqueQueueIndices() const;
 	};
 
+	// TODO: Separate Physical and Logical device
 	class Device
 	{
 	public:
@@ -95,6 +98,31 @@ namespace vks
 		* Returns queue family indices
 		*/
 		const QueueFamilyIndices& GetQueueFamilyIndices() const;
+
+		/**
+		* Wait for fences
+		*/
+		void WaitForFences(
+			std::initializer_list<std::reference_wrapper<vks::sync::Fence>> p_fences,
+			bool p_waitAll = true,
+			std::optional<uint64_t> p_timeout = std::nullopt
+		);
+
+		/**
+		* Reset fences
+		*/
+		void ResetFences(
+			std::initializer_list<std::reference_wrapper<vks::sync::Fence>> p_fences
+		);
+
+		/**
+		* Wait for semaphores
+		*/
+		void WaitForSemaphores(
+			std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_semaphores,
+			bool p_waitAll = true,
+			std::optional<uint64_t> p_timeout = std::nullopt
+		);
 
 	private:
 		bool m_suitable = false;

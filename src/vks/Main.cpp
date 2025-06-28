@@ -32,8 +32,8 @@
 #include <vks/RenderPass.h>
 #include <vks/Framebuffer.h>
 #include <vks/CommandPool.h>
-#include <vks/sync/FenceWaitGroup.h>
-#include <vks/sync/SemaphoreWaitGroup.h>
+#include <vks/sync/Fence.h>
+#include <vks/sync/Semaphore.h>
 #include <vks/GraphicsPipeline.h>
 #include <vks/utils/ShaderUtils.h>
 #include <vks/utils/DeviceManager.h>
@@ -182,10 +182,7 @@ int main()
 		vks::CommandBuffer& commandBuffer = commandBuffers[currentFrameIndex].get();
 		FrameSyncObjects& frameSyncObjects = frameSyncObjectsArray[currentFrameIndex];
 
-		auto inFlightFenceWaitGroup = std::make_unique<vks::sync::FenceWaitGroup>(
-			device.GetLogicalDevice(),
-			std::to_array<const std::reference_wrapper<vks::sync::Fence>>({ *frameSyncObjects.inFlightFence })
-		);
+		device.WaitForFences({ *frameSyncObjects.inFlightFence });
 
 		try
 		{
@@ -228,7 +225,7 @@ int main()
 			continue;
 		}
 
-		inFlightFenceWaitGroup.reset();
+		device.ResetFences({ *frameSyncObjects.inFlightFence });
 
 		commandBuffer.Reset();
 		commandBuffer.Begin();
