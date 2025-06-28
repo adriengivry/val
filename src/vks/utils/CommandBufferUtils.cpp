@@ -10,7 +10,7 @@
 
 namespace
 {
-	std::vector<VkSemaphore> PrepareSemaphoreArray(std::span<const std::reference_wrapper<vks::sync::Semaphore>> p_semaphores)
+	std::vector<VkSemaphore> PrepareSemaphoreArray(std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_semaphores)
 	{
 		std::vector<VkSemaphore> output;
 		output.reserve(p_semaphores.size());
@@ -21,7 +21,7 @@ namespace
 		return output;
 	}
 
-	std::vector<VkCommandBuffer> PrepareCommandBufferArray(std::span<const std::reference_wrapper<vks::CommandBuffer>> p_commandBuffers)
+	std::vector<VkCommandBuffer> PrepareCommandBufferArray(std::initializer_list<std::reference_wrapper<vks::CommandBuffer>> p_commandBuffers)
 	{
 		std::vector<VkCommandBuffer> output;
 		output.reserve(p_commandBuffers.size());
@@ -36,9 +36,9 @@ namespace vks::utils
 {
 	void CommandBufferUtils::SubmitCommandBuffers(
 		VkQueue p_queue,
-		std::span<const std::reference_wrapper<vks::CommandBuffer>> p_commandBuffers,
-		std::span<const std::reference_wrapper<vks::sync::Semaphore>> p_waitSemaphores,
-		std::span<const std::reference_wrapper<vks::sync::Semaphore>> p_signalSemaphores,
+		std::initializer_list<std::reference_wrapper<vks::CommandBuffer>> p_commandBuffers,
+		std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_waitSemaphores,
+		std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_signalSemaphores,
 		vks::sync::Fence& p_fence
 	)
 	{

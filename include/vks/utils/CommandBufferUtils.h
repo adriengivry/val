@@ -23,9 +23,9 @@ namespace vks::utils
 		*/
 		static void SubmitCommandBuffers(
 			VkQueue p_queue,
-			std::span<const std::reference_wrapper<vks::CommandBuffer>> p_commandBuffers,
-			std::span<const std::reference_wrapper<vks::sync::Semaphore>> p_waitSemaphores,
-			std::span<const std::reference_wrapper<vks::sync::Semaphore>> p_signalSemaphores,
+			std::initializer_list<std::reference_wrapper<vks::CommandBuffer>> p_commandBuffers,
+			std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_waitSemaphores,
+			std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_signalSemaphores,
 			sync::Fence& p_fence
 		);
 	};

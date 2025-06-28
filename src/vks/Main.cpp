@@ -260,9 +260,9 @@ int main()
 
 		vks::utils::CommandBufferUtils::SubmitCommandBuffers(
 			device.GetGraphicsQueue(),
-			std::to_array<const std::reference_wrapper<vks::CommandBuffer>>({ commandBuffer }),
-			std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *frameSyncObjects.imageAvailableSemaphore }),
-			std::to_array<const std::reference_wrapper<vks::sync::Semaphore>>({ *frameSyncObjects.renderFinishedSemaphore }),
+			{ commandBuffer },
+			{ *frameSyncObjects.imageAvailableSemaphore },
+			{ *frameSyncObjects.renderFinishedSemaphore },
 			*frameSyncObjects.inFlightFence
 		);
 
