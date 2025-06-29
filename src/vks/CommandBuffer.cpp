@@ -109,6 +109,16 @@ namespace vks
 		vkCmdBindPipeline(m_handle, p_bindPoint, p_pipeline);
 	}
 
+	void CommandBuffer::BindIndexBuffer(const Buffer& p_indexBuffer, uint64_t p_offset, VkIndexType p_indexType)
+	{
+		vkCmdBindIndexBuffer(
+			m_handle,
+			p_indexBuffer.GetHandle(),
+			0,
+			p_indexType
+		);
+	}
+
 	void CommandBuffer::BindVertexBuffers(
 		std::span<const std::reference_wrapper<Buffer>> p_buffers,
 		std::span<const uint64_t> p_offsets
@@ -138,5 +148,10 @@ namespace vks
 	void CommandBuffer::Draw(uint32_t p_vertexCount, uint32_t p_instanceCount)
 	{
 		vkCmdDraw(m_handle, p_vertexCount, p_instanceCount, 0, 0);
+	}
+
+	void CommandBuffer::DrawIndexed(uint32_t p_indexCount, uint32_t p_instanceCount)
+	{
+		vkCmdDrawIndexed(m_handle, p_indexCount, p_instanceCount, 0, 0, 0);
 	}
 }

@@ -68,6 +68,15 @@ namespace vks
 		void BindPipeline(VkPipelineBindPoint p_bindPoint, VkPipeline p_pipeline);
 
 		/**
+		* Bind index buffer
+		*/
+		void BindIndexBuffer(
+			const Buffer& p_indexBuffer,
+			uint64_t p_offset = 0,
+			VkIndexType p_indexType = VkIndexType::VK_INDEX_TYPE_UINT32
+		);
+
+		/**
 		* Bind vertex buffers
 		*/
 		void BindVertexBuffers(
@@ -88,7 +97,13 @@ namespace vks
 		/**
 		* Submit a draw command
 		*/
-		void Draw(uint32_t p_vertexCount, uint32_t p_instanceCount);
+		void Draw(uint32_t p_vertexCount, uint32_t p_instanceCount = 1);
+
+		/**
+		* Submit an indexed draw command
+		*/
+		void DrawIndexed(uint32_t p_indexCount, uint32_t p_instanceCount = 1);
+
 
 	private:
 		CommandBuffer(VkCommandBuffer p_handle);

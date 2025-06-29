@@ -89,9 +89,14 @@ namespace
 	};
 
 	constexpr auto k_vertices = std::to_array<Vertex>({
-		{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-		{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	});
+
+	constexpr auto k_indices = std::to_array<uint32_t>({
+		0, 1, 2, 2, 3, 0
 	});
 }
 
@@ -171,6 +176,16 @@ int RunVulkan(GLFWwindow* window)
 	hostVertexBuffer->Allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	hostVertexBuffer->Upload(k_vertices.data());
 
+	std::unique_ptr<vks::Buffer> hostIndexBuffer = std::make_unique<vks::Buffer>(
+		device,
+		vks::BufferDesc{
+			.size = sizeof(k_indices),
+			.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+		}
+	);
+	hostIndexBuffer->Allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	hostIndexBuffer->Upload(k_indices.data());
+
 	std::unique_ptr<vks::Buffer> deviceVertexBuffer = std::make_unique<vks::Buffer>(
 		device,
 		vks::BufferDesc{
@@ -179,6 +194,15 @@ int RunVulkan(GLFWwindow* window)
 		}
 	);
 	deviceVertexBuffer->Allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	std::unique_ptr<vks::Buffer> deviceIndexBuffer = std::make_unique<vks::Buffer>(
+		device,
+		vks::BufferDesc{
+			.size = sizeof(k_indices),
+			.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+		}
+	);
+	deviceIndexBuffer->Allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	// Can be outside of the render loop, since the window is marked as non-resizable.
 	// If this were to change, this should be evaluated each frame, and the swap chain would
@@ -227,14 +251,17 @@ int RunVulkan(GLFWwindow* window)
 
 	vks::CommandBuffer& transferCommandBuffer = transferCommandBuffers.front().get();
 
+	// Upload CPU (host) buffers to the GPU (device)
 	transferCommandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	transferCommandBuffer.CopyBuffer(*hostVertexBuffer, *deviceVertexBuffer);
+	transferCommandBuffer.CopyBuffer(*hostIndexBuffer, *deviceIndexBuffer);
 	transferCommandBuffer.End();
 	device.GetGraphicsQueue().Submit({ transferCommandBuffer });
 	device.WaitIdle();
 
-	// At this point we don't need the client copy of the vertex data anymore.
+	// At this point we don't need the client copy of these buffers anymore
 	hostVertexBuffer->Deallocate();
+	hostIndexBuffer->Deallocate();
 
 	struct FrameSyncObjects
 	{
@@ -345,7 +372,11 @@ int RunVulkan(GLFWwindow* window)
 			std::to_array<uint64_t>({0})
 		);
 
-		commandBuffer.Draw(static_cast<uint32_t>(k_vertices.size()), 1);
+		commandBuffer.BindIndexBuffer(
+			*deviceIndexBuffer
+		);
+
+		commandBuffer.DrawIndexed(static_cast<uint32_t>(k_indices.size()));
 
 		commandBuffer.EndRenderPass();
 		commandBuffer.End();
