@@ -202,15 +202,15 @@ namespace vks
 		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &graphicsQueue);
 		vkGetDeviceQueue(m_logicalDevice, m_queueFamilyIndices.presentFamily.value(), 0, &presentQueue);
 
-		m_graphicsQueue = std::make_unique<Queue>(
+		m_graphicsQueue = std::unique_ptr<Queue>(new Queue(
 			m_logicalDevice,
 			graphicsQueue
-		);
+		));
 
-		m_presentQueue = std::make_unique<Queue>(
+		m_presentQueue = std::unique_ptr<Queue>(new Queue(
 			m_logicalDevice,
 			presentQueue
-		);
+		));
 	}
 
 	VkPhysicalDevice Device::GetPhysicalDevice() const

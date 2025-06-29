@@ -20,11 +20,6 @@ namespace vks
 	{
 	public:
 		/**
-		* Creates a queue from an existing handle
-		*/
-		Queue(VkDevice p_device, VkQueue p_queue);
-
-		/**
 		* Destroys the queue 
 		*/
 		virtual ~Queue() = default;
@@ -49,6 +44,11 @@ namespace vks
 		* Returns the VkQueue handle
 		*/
 		VkQueue GetHandle() const;
+
+	private:
+		Queue(VkDevice p_device, VkQueue p_queue);
+
+		friend class Device;
 
 	private:
 		VkDevice m_device = VK_NULL_HANDLE;
