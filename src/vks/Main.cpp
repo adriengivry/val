@@ -15,6 +15,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
@@ -34,6 +35,9 @@
 #include <vks/Framebuffer.h>
 #include <vks/CommandPool.h>
 #include <vks/Buffer.h>
+#include <vks/DescriptorSetLayout.h>
+#include <vks/DescriptorPool.h>
+#include <vks/DescriptorSet.h>
 #include <vks/sync/Fence.h>
 #include <vks/sync/Semaphore.h>
 #include <vks/GraphicsPipeline.h>
@@ -98,6 +102,13 @@ namespace
 	constexpr auto k_indices = std::to_array<uint32_t>({
 		0, 1, 2, 2, 3, 0
 	});
+
+	struct UniformBufferObject
+	{
+		alignas(16) glm::mat4 model;
+		alignas(16) glm::mat4 view;
+		alignas(16) glm::mat4 proj;
+	};
 }
 
 int RunVulkan(GLFWwindow* window)
@@ -204,6 +215,17 @@ int RunVulkan(GLFWwindow* window)
 	);
 	deviceIndexBuffer->Allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
+	std::unique_ptr<vks::DescriptorSetLayout> descriptorSetLayout = std::make_unique<vks::DescriptorSetLayout>(
+		device.GetLogicalDevice(),
+		std::to_array<vks::DescriptorSetLayoutBinding>({
+			{
+				.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+				.binding = 0
+			}
+		})
+	);
+
 	// Can be outside of the render loop, since the window is marked as non-resizable.
 	// If this were to change, this should be evaluated each frame, and the swap chain would
 	// need to be recreated.
@@ -230,7 +252,8 @@ int RunVulkan(GLFWwindow* window)
 			.program = program,
 			.renderPass = *renderPass,
 			.vertexInputAttributeDesc = VertexInputDescription<Vertex>::GetAttributeDescriptions(),
-			.vertexInputBindingDesc = VertexInputDescription<Vertex>::GetBindingDescription()
+			.vertexInputBindingDesc = VertexInputDescription<Vertex>::GetBindingDescription(),
+			.descriptorSetLayouts = std::to_array({std::ref(*descriptorSetLayout)})
 		}
 	);
 
@@ -244,6 +267,53 @@ int RunVulkan(GLFWwindow* window)
 
 	const uint8_t k_maxFramesInFlight = 2;
 	uint8_t currentFrameIndex = 0;
+
+	std::vector<vks::Buffer> ubos;
+	ubos.reserve(k_maxFramesInFlight);
+	for (uint8_t i = 0; i < k_maxFramesInFlight; ++i)
+	{
+		auto& ubo = ubos.emplace_back(
+			device,
+			vks::BufferDesc{
+				.size = sizeof(UniformBufferObject),
+				.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+			}
+		);
+
+		ubo.Allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	}
+
+	std::unique_ptr<vks::DescriptorPool> descriptorPool = std::make_unique<vks::DescriptorPool>(device);
+	std::vector<std::reference_wrapper<vks::DescriptorSet>> descriptorSets = descriptorPool->AllocateDescriptorSets(*descriptorSetLayout, 2);
+
+	for (size_t i = 0; i < k_maxFramesInFlight; i++)
+	{
+		VkDescriptorBufferInfo bufferInfo{
+			.buffer = ubos[i].GetHandle(),
+			.offset = 0,
+			.range = sizeof(UniformBufferObject)
+		};
+
+		VkWriteDescriptorSet descriptorWrite{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstSet = descriptorSets[i].get().GetHandle(),
+			.dstBinding = 0,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.pImageInfo = nullptr, // Optional
+			.pBufferInfo = &bufferInfo,
+			.pTexelBufferView = nullptr, // Optional
+		};
+
+		vkUpdateDescriptorSets(
+			device.GetLogicalDevice(),
+			1,
+			&descriptorWrite,
+			0,
+			nullptr
+		);
+	}
 
 	std::unique_ptr<vks::CommandPool> commandPool = std::make_unique<vks::CommandPool>(device);
 	std::vector<std::reference_wrapper<vks::CommandBuffer>> transferCommandBuffers = commandPool->AllocateCommandBuffers(1);
@@ -337,6 +407,22 @@ int RunVulkan(GLFWwindow* window)
 
 		device.ResetFences({ *frameSyncObjects.inFlightFence });
 
+		const float time = static_cast<float>(glfwGetTime());
+
+		// Update UBO data each frame
+		UniformBufferObject uboData{
+			.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+			.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+			.proj = glm::perspective(glm::radians(45.0f), swapChainOptimalConfig.extent.width / (float)swapChainOptimalConfig.extent.height, 0.1f, 10.0f)
+		};
+
+		// GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
+		// The easiest way to compensate for that is to flip the sign on the scaling factor of the Y axis in the projection matrix.
+		// If you don't do this, then the image will be rendered upside down.
+		uboData.proj[1][1] *= -1;
+
+		ubos[currentFrameIndex].Upload(&uboData);
+
 		commandBuffer.Reset();
 		commandBuffer.Begin();
 
@@ -374,6 +460,11 @@ int RunVulkan(GLFWwindow* window)
 
 		commandBuffer.BindIndexBuffer(
 			*deviceIndexBuffer
+		);
+
+		commandBuffer.BindDescriptorSets(
+			std::to_array({ std::ref(descriptorSets[currentFrameIndex]) }),
+			graphicsPipeline->GetLayout()
 		);
 
 		commandBuffer.DrawIndexed(static_cast<uint32_t>(k_indices.size()));

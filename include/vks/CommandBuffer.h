@@ -14,6 +14,7 @@ namespace vks
 {
 	class CommandPool;
 	class Buffer;
+	class DescriptorSet;
 
 	class CommandBuffer
 	{
@@ -82,6 +83,14 @@ namespace vks
 		void BindVertexBuffers(
 			std::span<const std::reference_wrapper<Buffer>> p_buffers,
 			std::span<const uint64_t> p_offsets
+		);
+
+		/**
+		* Bind descriptor sets
+		*/
+		void BindDescriptorSets(
+			std::span<const std::reference_wrapper<DescriptorSet>> p_descriptorSets,
+			VkPipelineLayout p_pipelineLayout
 		);
 
 		/**

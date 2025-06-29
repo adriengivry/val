@@ -30,8 +30,6 @@ namespace vks
 		) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create command pool");
 		}
-
-		// vkAllocateCommandBuffers(m_device.GetLogicalDevice(), );
 	}
 
 	CommandPool::~CommandPool()

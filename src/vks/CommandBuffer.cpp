@@ -6,6 +6,7 @@
 
 #include <vks/CommandBuffer.h>
 #include <vks/Buffer.h>
+#include <vks/DescriptorSet.h>
 #include <vks/utils/MemoryUtils.h>
 #include <cassert>
 #include <iostream>
@@ -132,6 +133,25 @@ namespace vks
 			1,
 			buffers.data(),
 			p_offsets.data()
+		);
+	}
+
+	void CommandBuffer::BindDescriptorSets(
+		std::span<const std::reference_wrapper<DescriptorSet>> p_descriptorSets,
+		VkPipelineLayout p_pipelineLayout
+	)
+	{
+		std::vector<VkDescriptorSet> descriptorSets = utils::MemoryUtils::PrepareArray<VkDescriptorSet>(p_descriptorSets);
+
+		vkCmdBindDescriptorSets(
+			m_handle,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			p_pipelineLayout,
+			0,
+			1,
+			descriptorSets.data(),
+			0,
+			nullptr
 		);
 	}
 

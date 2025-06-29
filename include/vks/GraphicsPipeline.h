@@ -10,6 +10,7 @@
 #include <vks/ShaderProgram.h>
 #include <vks/SwapChain.h>
 #include <vks/RenderPass.h>
+#include <vks/DescriptorSetLayout.h>
 
 namespace vks
 {
@@ -19,6 +20,7 @@ namespace vks
 		RenderPass& renderPass;
 		std::span<const VkVertexInputAttributeDescription> vertexInputAttributeDesc;
 		std::span<const VkVertexInputBindingDescription> vertexInputBindingDesc;
+		std::span<const std::reference_wrapper<DescriptorSetLayout>> descriptorSetLayouts;
 	};
 
 	class GraphicsPipeline
@@ -38,6 +40,11 @@ namespace vks
 		* Returns a VkPipeline handle
 		*/
 		VkPipeline GetHandle() const;
+
+		/**
+		* Returns a VkPipelineLayout handle 
+		*/
+		VkPipelineLayout GetLayout() const;
 
 	private:
 		VkDevice m_device = VK_NULL_HANDLE;

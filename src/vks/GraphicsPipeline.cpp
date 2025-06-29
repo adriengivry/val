@@ -6,6 +6,7 @@
 
 #include <vks/GraphicsPipeline.h>
 #include <vks/utils/ShaderUtils.h>
+#include <vks/utils/MemoryUtils.h>
 #include <array>
 #include <cassert>
 #include <iostream>
@@ -69,7 +70,7 @@ namespace vks
 			.rasterizerDiscardEnable = VK_FALSE,
 			.polygonMode = VK_POLYGON_MODE_FILL,
 			.cullMode = VK_CULL_MODE_BACK_BIT,
-			.frontFace = VK_FRONT_FACE_CLOCKWISE,
+			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 			.depthBiasEnable = VK_FALSE,
 			.depthBiasConstantFactor = 0.0f, // Optional
 			.depthBiasClamp = 0.0f, // Optional
@@ -116,16 +117,11 @@ namespace vks
 			}
 		};
 
-		// You can use uniform values in shaders, which are globals similar to dynamic state variables that can be changed at drawing time
-		// to alter the behavior of your shaders without having to recreate them. They are commonly used to pass the transformation matrix
-		// to the vertex shader, or to create texture samplers in the fragment shader.
-		// 
-		// These uniform values need to be specified during pipeline creation by creating a VkPipelineLayout object.
-		// Even though we won't be using them until a future chapter, we are still required to create an empty pipeline layout.
+		const auto descriptorSetLayouts = utils::MemoryUtils::PrepareArray<VkDescriptorSetLayout>(p_desc.descriptorSetLayouts);
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			.setLayoutCount = 0, // Optional
-			.pSetLayouts = nullptr, // Optional
+			.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size()),
+			.pSetLayouts = descriptorSetLayouts.data(),
 			.pushConstantRangeCount = 0, // Optional
 			.pPushConstantRanges = nullptr // Optional
 		};
@@ -175,5 +171,10 @@ namespace vks
 	VkPipeline GraphicsPipeline::GetHandle() const
 	{
 		return m_graphicsPipeline;
+	}
+
+	VkPipelineLayout GraphicsPipeline::GetLayout() const
+	{
+		return m_pipelineLayout;
 	}
 }
