@@ -6,26 +6,11 @@
 
 #include <vks/Queue.h>
 #include <vks/SwapChain.h>
+#include <vks/utils/MemoryUtils.h>
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-
-namespace
-{
-	// Input need to be a class with GetHandle() (VkObject)
-	template<class Output, class Input>
-	std::vector<Output> PrepareArray(std::initializer_list<std::reference_wrapper<Input>> p_elements)
-	{
-		std::vector<Output> output;
-		output.reserve(p_elements.size());
-		for (const auto& element : p_elements)
-		{
-			output.push_back(element.get().GetHandle());
-		}
-		return output;
-	}
-}
 
 namespace vks
 {
@@ -43,9 +28,9 @@ namespace vks
 	)
 	{
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		const auto waitSemaphores = PrepareArray<VkSemaphore>(p_waitSemaphores);
-		const auto signalSemaphores = PrepareArray<VkSemaphore>(p_signalSemaphores);
-		const auto commandBuffers = PrepareArray<VkCommandBuffer>(p_commandBuffers);
+		const auto waitSemaphores = utils::MemoryUtils::PrepareArray<VkSemaphore>(p_waitSemaphores);
+		const auto signalSemaphores = utils::MemoryUtils::PrepareArray<VkSemaphore>(p_signalSemaphores);
+		const auto commandBuffers = utils::MemoryUtils::PrepareArray<VkCommandBuffer>(p_commandBuffers);
 
 		VkSubmitInfo submitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -70,7 +55,7 @@ namespace vks
 		uint32_t p_swapChainIndice
 	)
 	{
-		const auto waitSemaphores = PrepareArray<VkSemaphore>(p_waitSemaphores);
+		const auto waitSemaphores = utils::MemoryUtils::PrepareArray<VkSemaphore>(p_waitSemaphores);
 		const auto swapChainHandle = p_swapChain.GetHandle();
 
 		VkPresentInfoKHR presentInfo{

@@ -5,6 +5,8 @@
 */
 
 #include <vks/CommandBuffer.h>
+#include <vks/Buffer.h>
+#include <vks/utils/MemoryUtils.h>
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
@@ -85,6 +87,22 @@ namespace vks
 	void CommandBuffer::BindPipeline(VkPipelineBindPoint p_bindPoint, VkPipeline p_pipeline)
 	{
 		vkCmdBindPipeline(m_handle, p_bindPoint, p_pipeline);
+	}
+
+	void CommandBuffer::BindVertexBuffers(
+		std::span<const std::reference_wrapper<Buffer>> p_buffers,
+		std::span<const uint64_t> p_offsets
+	)
+	{
+		std::vector<VkBuffer> buffers = utils::MemoryUtils::PrepareArray<VkBuffer>(p_buffers);
+
+		vkCmdBindVertexBuffers(
+			m_handle,
+			0,
+			1,
+			buffers.data(),
+			p_offsets.data()
+		);
 	}
 
 	void CommandBuffer::SetViewport(const VkViewport& p_viewport)

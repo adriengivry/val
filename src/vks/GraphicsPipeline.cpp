@@ -40,10 +40,10 @@ namespace vks
 		//	Attribute descriptions : type of the attributes passed to the vertex shader, which binding to load them from and at which offset
 		VkPipelineVertexInputStateCreateInfo vertexInputState{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-			.vertexBindingDescriptionCount = 0,
-			.pVertexBindingDescriptions = nullptr, // Optional
-			.vertexAttributeDescriptionCount = 0,
-			.pVertexAttributeDescriptions = nullptr // Optional
+			.vertexBindingDescriptionCount = static_cast<uint32_t>(p_desc.vertexInputBindingDesc.size()),
+			.pVertexBindingDescriptions = p_desc.vertexInputBindingDesc.data(), // Optional
+			.vertexAttributeDescriptionCount = static_cast<uint32_t>(p_desc.vertexInputAttributeDesc.size()),
+			.pVertexAttributeDescriptions = p_desc.vertexInputAttributeDesc.data() // Optional
 		};
 
 		// The VkPipelineInputAssemblyStateCreateInfo struct describes two things:

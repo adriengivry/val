@@ -14,6 +14,7 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
@@ -32,11 +33,67 @@
 #include <vks/RenderPass.h>
 #include <vks/Framebuffer.h>
 #include <vks/CommandPool.h>
+#include <vks/Buffer.h>
 #include <vks/sync/Fence.h>
 #include <vks/sync/Semaphore.h>
 #include <vks/GraphicsPipeline.h>
 #include <vks/utils/ShaderUtils.h>
 #include <vks/utils/DeviceManager.h>
+
+namespace
+{
+	struct Vertex
+	{
+		glm::vec2 pos;
+		glm::vec3 color;
+	};
+
+	template<class T>
+	struct VertexInputDescription
+	{
+		static auto GetBindingDescription();
+		static auto GetAttributeDescriptions();
+	};
+
+	template<>
+	struct VertexInputDescription<Vertex>
+	{
+		static auto GetBindingDescription()
+		{
+			return std::to_array<VkVertexInputBindingDescription>({
+				{
+					.binding = 0,
+					.stride = sizeof(Vertex),
+					.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+				}
+			});
+		}
+
+		static auto GetAttributeDescriptions()
+		{
+			return std::to_array<VkVertexInputAttributeDescription>({
+				{
+					.location = 0,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32_SFLOAT,
+					.offset = offsetof(Vertex, pos)
+				},
+				{
+					.location = 1,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32B32_SFLOAT,
+					.offset = offsetof(Vertex, color)
+				}
+			});
+		}
+	};
+
+	constexpr auto k_vertices = std::to_array<Vertex>({
+		{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+	});
+}
 
 int RunVulkan(GLFWwindow* window)
 {
@@ -104,6 +161,16 @@ int RunVulkan(GLFWwindow* window)
 		fragmentStage
 	}));
 
+	std::unique_ptr<vks::Buffer> vertexBuffer = std::make_unique<vks::Buffer>(
+		device,
+		vks::BufferDesc{
+			.size = sizeof(k_vertices),
+			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+		}
+	);
+	vertexBuffer->Allocate();
+	vertexBuffer->Upload(k_vertices.data());
+
 	// Can be outside of the render loop, since the window is marked as non-resizable.
 	// If this were to change, this should be evaluated each frame, and the swap chain would
 	// need to be recreated.
@@ -128,7 +195,9 @@ int RunVulkan(GLFWwindow* window)
 		device.GetLogicalDevice(),
 		vks::GraphicsPipelineDesc{
 			.program = program,
-			.renderPass = *renderPass
+			.renderPass = *renderPass,
+			.vertexInputAttributeDesc = VertexInputDescription<Vertex>::GetAttributeDescriptions(),
+			.vertexInputBindingDesc = VertexInputDescription<Vertex>::GetBindingDescription()
 		}
 	);
 
@@ -250,7 +319,12 @@ int RunVulkan(GLFWwindow* window)
 			.extent = swapChain->GetDesc().extent
 		});
 
-		commandBuffer.Draw(3, 1);
+		commandBuffer.BindVertexBuffers(
+			std::to_array({ std::ref(*vertexBuffer) }),
+			std::to_array<uint64_t>({0})
+		);
+
+		commandBuffer.Draw(static_cast<uint32_t>(k_vertices.size()), 1);
 
 		commandBuffer.EndRenderPass();
 		commandBuffer.End();

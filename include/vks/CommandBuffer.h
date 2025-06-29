@@ -8,10 +8,12 @@
 
 #include <vulkan/vulkan.h>
 #include <vector>
+#include <span>
 
 namespace vks
 {
 	class CommandPool;
+	class Buffer;
 
 	class CommandBuffer
 	{
@@ -59,6 +61,14 @@ namespace vks
 		* Bind a graphics pipeline
 		*/
 		void BindPipeline(VkPipelineBindPoint p_bindPoint, VkPipeline p_pipeline);
+
+		/**
+		* Bind vertex buffers
+		*/
+		void BindVertexBuffers(
+			std::span<const std::reference_wrapper<Buffer>> p_buffers,
+			std::span<const uint64_t> p_offsets
+		);
 
 		/**
 		* Set viewport

@@ -17,6 +17,8 @@ namespace vks
 	{
 		ShaderProgram& program;
 		RenderPass& renderPass;
+		std::span<const VkVertexInputAttributeDescription> vertexInputAttributeDesc;
+		std::span<const VkVertexInputBindingDescription> vertexInputBindingDesc;
 	};
 
 	class GraphicsPipeline
