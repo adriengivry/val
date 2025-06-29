@@ -36,7 +36,7 @@ namespace vks
 		/**
 		* Begin recording commands
 		*/
-		void Begin();
+		void Begin(VkCommandBufferUsageFlags p_flags = 0);
 
 		/**
 		* Finish recording commands
@@ -56,6 +56,11 @@ namespace vks
 		* End a render pass
 		*/
 		void EndRenderPass();
+
+		/**
+		* Copy buffer content from source to destination
+		*/
+		void CopyBuffer(Buffer& p_src, Buffer& p_dest, std::span<const VkBufferCopy> p_regions = {});
 
 		/**
 		* Bind a graphics pipeline

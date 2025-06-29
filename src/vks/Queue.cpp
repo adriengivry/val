@@ -24,7 +24,7 @@ namespace vks
 		std::initializer_list<std::reference_wrapper<vks::CommandBuffer>> p_commandBuffers,
 		std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_waitSemaphores,
 		std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_signalSemaphores,
-		sync::Fence& p_fence
+		std::optional<std::reference_wrapper<sync::Fence>> p_fence
 	)
 	{
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -43,7 +43,12 @@ namespace vks
 			.pSignalSemaphores = signalSemaphores.data()
 		};
 
-		if (vkQueueSubmit(m_handle, 1, &submitInfo, p_fence.GetHandle()) != VK_SUCCESS)
+		if (vkQueueSubmit(
+			m_handle,
+			1,
+			&submitInfo,
+			p_fence.has_value() ? p_fence.value().get().GetHandle() : VK_NULL_HANDLE
+		) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to submit queue!");
 		}

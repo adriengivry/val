@@ -69,7 +69,7 @@ namespace vks
 			m_allocatedBytes > 0;
 	}
 
-	void Buffer::Allocate()
+	void Buffer::Allocate(VkMemoryPropertyFlags p_properties)
 	{
 		assert(!IsAllocated());
 
@@ -79,7 +79,7 @@ namespace vks
 		const auto memoryType = FindMemoryType(
 			m_device.GetPhysicalDevice(),
 			memRequirements.memoryTypeBits,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			p_properties
 		);
 
 		VkMemoryAllocateInfo allocInfo{
@@ -138,6 +138,11 @@ namespace vks
 		std::memcpy(destPtr, p_data, size);
 
 		vkUnmapMemory(m_device.GetLogicalDevice(), m_memory);
+	}
+
+	uint64_t Buffer::GetAllocatedBytes() const
+	{
+		return m_allocatedBytes;
 	}
 
 	VkBuffer Buffer::GetHandle() const

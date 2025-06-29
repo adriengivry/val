@@ -7,6 +7,7 @@
 #pragma once
 
 #include <span>
+#include <optional>
 #include <vulkan/vulkan.h>
 #include <vks/sync/Fence.h>
 #include <vks/sync/Semaphore.h>
@@ -29,9 +30,9 @@ namespace vks
 		*/
 		void Submit(
 			std::initializer_list<std::reference_wrapper<vks::CommandBuffer>> p_commandBuffers,
-			std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_waitSemaphores,
-			std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_signalSemaphores,
-			sync::Fence& p_fence
+			std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_waitSemaphores = {},
+			std::initializer_list<std::reference_wrapper<vks::sync::Semaphore>> p_signalSemaphores = {},
+			std::optional<std::reference_wrapper<sync::Fence>> p_fence = std::nullopt
 		);
 
 		void Present(

@@ -161,15 +161,24 @@ int RunVulkan(GLFWwindow* window)
 		fragmentStage
 	}));
 
-	std::unique_ptr<vks::Buffer> vertexBuffer = std::make_unique<vks::Buffer>(
+	std::unique_ptr<vks::Buffer> hostVertexBuffer = std::make_unique<vks::Buffer>(
 		device,
 		vks::BufferDesc{
 			.size = sizeof(k_vertices),
-			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+			.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
 		}
 	);
-	vertexBuffer->Allocate();
-	vertexBuffer->Upload(k_vertices.data());
+	hostVertexBuffer->Allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	hostVertexBuffer->Upload(k_vertices.data());
+
+	std::unique_ptr<vks::Buffer> deviceVertexBuffer = std::make_unique<vks::Buffer>(
+		device,
+		vks::BufferDesc{
+			.size = sizeof(k_vertices),
+			.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+		}
+	);
+	deviceVertexBuffer->Allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	// Can be outside of the render loop, since the window is marked as non-resizable.
 	// If this were to change, this should be evaluated each frame, and the swap chain would
@@ -213,7 +222,19 @@ int RunVulkan(GLFWwindow* window)
 	uint8_t currentFrameIndex = 0;
 
 	std::unique_ptr<vks::CommandPool> commandPool = std::make_unique<vks::CommandPool>(device);
+	std::vector<std::reference_wrapper<vks::CommandBuffer>> transferCommandBuffers = commandPool->AllocateCommandBuffers(1);
 	std::vector<std::reference_wrapper<vks::CommandBuffer>> commandBuffers = commandPool->AllocateCommandBuffers(k_maxFramesInFlight);
+
+	vks::CommandBuffer& transferCommandBuffer = transferCommandBuffers.front().get();
+
+	transferCommandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+	transferCommandBuffer.CopyBuffer(*hostVertexBuffer, *deviceVertexBuffer);
+	transferCommandBuffer.End();
+	device.GetGraphicsQueue().Submit({ transferCommandBuffer });
+	device.WaitIdle();
+
+	// At this point we don't need the client copy of the vertex data anymore.
+	hostVertexBuffer->Deallocate();
 
 	struct FrameSyncObjects
 	{
@@ -320,7 +341,7 @@ int RunVulkan(GLFWwindow* window)
 		});
 
 		commandBuffer.BindVertexBuffers(
-			std::to_array({ std::ref(*vertexBuffer) }),
+			std::to_array({ std::ref(*deviceVertexBuffer) }),
 			std::to_array<uint64_t>({0})
 		);
 

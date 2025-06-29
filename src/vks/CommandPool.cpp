@@ -43,7 +43,6 @@ namespace vks
 	{
 		std::vector<std::reference_wrapper<CommandBuffer>> output;
 		output.reserve(p_count);
-		m_commandBuffers.reserve(m_commandBuffers.size() + p_count);
 
 		VkCommandBufferAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,

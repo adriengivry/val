@@ -7,6 +7,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <list>
 #include <vector>
 
 namespace vks
@@ -40,6 +41,6 @@ namespace vks
 	private:
 		Device& m_device;
 		VkCommandPool m_handle = VK_NULL_HANDLE;
-		std::vector<CommandBuffer> m_commandBuffers;
+		std::list<CommandBuffer> m_commandBuffers;
 	};
 }

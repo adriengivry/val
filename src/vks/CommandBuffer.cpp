@@ -28,11 +28,11 @@ namespace vks
 		vkResetCommandBuffer(m_handle, 0);
 	}
 
-	void CommandBuffer::Begin()
+	void CommandBuffer::Begin(VkCommandBufferUsageFlags p_flags)
 	{
 		VkCommandBufferBeginInfo beginInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			.flags = 0, // Optional
+			.flags = p_flags,
 			.pInheritanceInfo = nullptr // Optional
 		};
 
@@ -82,6 +82,26 @@ namespace vks
 	void CommandBuffer::EndRenderPass()
 	{
 		vkCmdEndRenderPass(m_handle);
+	}
+
+	void CommandBuffer::CopyBuffer(Buffer& p_src, Buffer& p_dest, std::span<const VkBufferCopy> p_regions)
+	{
+		VkBufferCopy defaultRegion{
+			.size = std::min(p_src.GetAllocatedBytes(), p_dest.GetAllocatedBytes())
+		};
+
+		const VkBufferCopy* firstRegion =
+			p_regions.empty() ?
+			&defaultRegion :
+			p_regions.data();
+
+		vkCmdCopyBuffer(
+			m_handle,
+			p_src.GetHandle(),
+			p_dest.GetHandle(),
+			std::max(1U, static_cast<uint32_t>(p_regions.size())),
+			firstRegion
+		);
 	}
 
 	void CommandBuffer::BindPipeline(VkPipelineBindPoint p_bindPoint, VkPipeline p_pipeline)

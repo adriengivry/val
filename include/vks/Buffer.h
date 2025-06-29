@@ -46,7 +46,7 @@ namespace vks
 		/**
 		* Allocate memory for the buffer 
 		*/
-		void Allocate();
+		void Allocate(VkMemoryPropertyFlags p_properties);
 
 		/**
 		* Deallocates memory for the buffer
@@ -57,6 +57,11 @@ namespace vks
 		* Uploads data to the allocated memory
 		*/
 		void Upload(const void* p_data, std::optional<BufferMemoryRange> p_memoryRange = std::nullopt);
+
+		/**
+		* Returns allocated bytes
+		*/
+		uint64_t GetAllocatedBytes() const;
 
 		/**
 		* Returns the underlying VkBuffer handle
