@@ -133,7 +133,8 @@ namespace vks
 			}
 
 			// Store swap chain support details since they can be used for swap chain creation
-			m_swapChainSupportDetails = utils::SwapChainUtils::QuerySwapChainDetails(m_physicalDevice, m_surface);
+			QuerySwapChainDetails();
+			
 			if (!IsSwapChainAdequate(m_swapChainSupportDetails))
 			{
 				return false;
@@ -142,6 +143,11 @@ namespace vks
 			// For example, we can require a physical device to be a discrete GPU 
 			return m_physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
 		}();
+	}
+
+	void Device::QuerySwapChainDetails()
+	{
+		m_swapChainSupportDetails = utils::SwapChainUtils::QuerySwapChainDetails(m_physicalDevice, m_surface);
 	}
 
 	bool Device::IsSuitable() const

@@ -23,6 +23,7 @@ namespace vks::utils
 		VkSurfaceCapabilitiesKHR capabilities;
 		VkSurfaceFormatKHR surfaceFormat;
 		VkPresentModeKHR presentMode;
+		VkExtent2D extent;
 	};
 
 	class SwapChainUtils
@@ -36,11 +37,6 @@ namespace vks::utils
 		/**
 		* Create optimal swap chain config (input for swap chain creation)
 		*/
-		static SwapChainOptimalConfig CalculateSwapChainOptimalConfig(const SwapChainSupportDetails& p_details);
-
-		/**
-		* Calculate optimal swap chain images extents
-		*/
-		static VkExtent2D CalculateSwapExtent(VkSurfaceCapabilitiesKHR p_capabilities, VkExtent2D p_windowExtent);
+		static SwapChainOptimalConfig CalculateSwapChainOptimalConfig(const SwapChainSupportDetails& p_details, VkExtent2D p_windowExtent);
 	};
 }

@@ -32,12 +32,10 @@ namespace vks
 	SwapChain::SwapChain(
 		Device& p_device,
 		VkSurfaceKHR p_surface,
-		VkExtent2D p_extent,
 		const utils::SwapChainOptimalConfig& p_desc
 	) :
 		m_device(p_device),
-		m_desc(p_desc),
-		m_extent(p_extent)
+		m_desc(p_desc)
 	{
 		const auto& queueFamilyIndices = p_device.GetQueueFamilyIndices();
 		const auto indices = queueFamilyIndices.GetUniqueQueueIndices();
@@ -48,7 +46,7 @@ namespace vks
 			.minImageCount = CalculateSwapChainImageCount(m_desc.capabilities),
 			.imageFormat = m_desc.surfaceFormat.format,
 			.imageColorSpace = m_desc.surfaceFormat.colorSpace,
-			.imageExtent = m_extent,
+			.imageExtent = m_desc.extent,
 			.imageArrayLayers = 1, // always 1 unless we're developing a stereoscopic 3D application.
 
 			 // It is also possible that we'll render images to a separate image first to perform operations like post-processing.
@@ -182,11 +180,6 @@ namespace vks
 		return m_desc;
 	}
 
-	VkExtent2D SwapChain::GetExtent() const
-	{
-		return m_extent;
-	}
-
 	std::vector<vks::Framebuffer> SwapChain::CreateFramebuffers(VkRenderPass p_renderPass)
 	{
 		std::vector<vks::Framebuffer> framebuffers;
@@ -199,7 +192,7 @@ namespace vks
 				vks::FramebufferDesc{
 					.attachments = std::to_array({ m_imageViews[i] }),
 					.renderPass = p_renderPass,
-					.extent = m_extent
+					.extent = m_desc.extent
 				}
 			);
 		}

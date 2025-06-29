@@ -102,17 +102,13 @@ namespace vks::utils
 		return details;
 	}
 
-	SwapChainOptimalConfig SwapChainUtils::CalculateSwapChainOptimalConfig(const SwapChainSupportDetails& p_details)
+	SwapChainOptimalConfig SwapChainUtils::CalculateSwapChainOptimalConfig(const SwapChainSupportDetails& p_details, VkExtent2D p_windowExtent)
 	{
 		return SwapChainOptimalConfig{
 			.capabilities = p_details.capabilities,
 			.surfaceFormat = ChooseSwapSurfaceFormat(p_details.formats),
-			.presentMode = ChooseSwapPresentMode(p_details.presentModes)
+			.presentMode = ChooseSwapPresentMode(p_details.presentModes),
+			.extent = ChooseSwapExtent(p_details.capabilities, p_windowExtent)
 		};
-	}
-
-	VkExtent2D SwapChainUtils::CalculateSwapExtent(VkSurfaceCapabilitiesKHR p_capabilities, VkExtent2D p_windowExtent)
-	{
-		return ChooseSwapExtent(p_capabilities, p_windowExtent);
 	}
 }

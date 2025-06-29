@@ -63,6 +63,11 @@ namespace vks
 		void QuerySuitability();
 
 		/**
+		* Query swap chain details and cache the result
+		*/
+		void QuerySwapChainDetails();
+
+		/**
 		* Returns true if this device is suitable
 		*/
 		bool IsSuitable() const;

@@ -38,14 +38,8 @@
 #include <vks/utils/ShaderUtils.h>
 #include <vks/utils/DeviceManager.h>
 
-int main()
+int RunVulkan(GLFWwindow* window)
 {
-	glfwInit();
-
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	// glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	GLFWwindow* window = glfwCreateWindow(800, 600, "vulkan-sandbox", nullptr, nullptr);
-
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -110,9 +104,19 @@ int main()
 		fragmentStage
 	}));
 
+	// Can be outside of the render loop, since the window is marked as non-resizable.
+	// If this were to change, this should be evaluated each frame, and the swap chain would
+	// need to be recreated.
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+
 	// Doesn't change even when the swap chain is recreated
 	vks::utils::SwapChainOptimalConfig swapChainOptimalConfig = vks::utils::SwapChainUtils::CalculateSwapChainOptimalConfig(
-		device.GetSwapChainSupportDetails()
+		device.GetSwapChainSupportDetails(),
+		VkExtent2D{
+			static_cast<uint32_t>(width),
+			static_cast<uint32_t>(height)
+		}
 	);
 
 	std::unique_ptr<vks::RenderPass> renderPass = std::make_unique<vks::RenderPass>(
@@ -128,24 +132,9 @@ int main()
 		}
 	);
 
-	// Can be outside of the render loop, since the window is marked as non-resizable.
-	// If this were to change, this should be evaluated each frame, and the swap chain would
-	// need to be recreated.
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-
-	VkExtent2D extent = vks::utils::SwapChainUtils::CalculateSwapExtent(
-		swapChainOptimalConfig.capabilities,
-		VkExtent2D{
-			static_cast<uint32_t>(width),
-			static_cast<uint32_t>(height)
-		}
-	);
-
 	std::unique_ptr<vks::SwapChain> swapChain = std::make_unique<vks::SwapChain>(
 		device,
 		surface->GetHandle(),
-		extent,
 		swapChainOptimalConfig
 	);
 
@@ -174,6 +163,42 @@ int main()
 
 	uint32_t swapImageIndex = 0;
 
+	auto recreateSwapChain = [&] {
+		int width = 0, height = 0;
+		glfwGetFramebufferSize(window, &width, &height);
+
+		// To handle when the window is minimized, since 0 isn't a valid size for a swap chain
+		while (width == 0 || height == 0)
+		{
+			glfwGetFramebufferSize(window, &width, &height);
+			glfwWaitEvents();
+		}
+
+		device.QuerySwapChainDetails();
+
+		swapChainOptimalConfig = vks::utils::SwapChainUtils::CalculateSwapChainOptimalConfig(
+			device.GetSwapChainSupportDetails(),
+			VkExtent2D{
+				static_cast<uint32_t>(width),
+				static_cast<uint32_t>(height)
+			}
+		);
+
+		device.WaitIdle();
+
+		framebuffers.clear();
+		swapChain.reset();
+
+		// Recreate the swapchain
+		swapChain = std::make_unique<vks::SwapChain>(
+			device,
+			surface->GetHandle(),
+			swapChainOptimalConfig
+		);
+
+		framebuffers = swapChain->CreateFramebuffers(renderPass->GetHandle());
+	};
+
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwPollEvents();
@@ -189,38 +214,7 @@ int main()
 		}
 		catch (vks::OutOfDateSwapChain)
 		{
-			int width = 0, height = 0;
-			glfwGetFramebufferSize(window, &width, &height);
-
-			// To handle when the window is minimized, since 0 isn't a valid size for a swap chain
-			while (width == 0 || height == 0)
-			{
-				glfwGetFramebufferSize(window, &width, &height);
-				glfwWaitEvents();
-			}
-
-			VkExtent2D newExtent = vks::utils::SwapChainUtils::CalculateSwapExtent(
-				swapChainOptimalConfig.capabilities,
-				VkExtent2D{
-					static_cast<uint32_t>(width),
-					static_cast<uint32_t>(height)
-				}
-			);
-
-			device.WaitIdle();
-
-			framebuffers.clear();
-			swapChain.reset();
-
-			// Recreate the swapchain
-			swapChain = std::make_unique<vks::SwapChain>(
-				device,
-				surface->GetHandle(),
-				newExtent,
-				swapChainOptimalConfig
-			);
-
-			framebuffers = swapChain->CreateFramebuffers(renderPass->GetHandle());
+			recreateSwapChain();
 			continue;
 		}
 
@@ -232,7 +226,7 @@ int main()
 		commandBuffer.BeginRenderPass(
 			renderPass->GetHandle(),
 			framebuffers[swapImageIndex].GetHandle(),
-			swapChain->GetExtent()
+			swapChain->GetDesc().extent
 		);
 
 		commandBuffer.BindPipeline(
@@ -245,15 +239,15 @@ int main()
 		commandBuffer.SetViewport({
 			.x = 0.0f,
 			.y = 0.0f,
-			.width = static_cast<float>(swapChain->GetExtent().width),
-			.height = static_cast<float>(swapChain->GetExtent().height),
+			.width = static_cast<float>(swapChain->GetDesc().extent.width),
+			.height = static_cast<float>(swapChain->GetDesc().extent.height),
 			.minDepth = 0.0f,
 			.maxDepth = 1.0f
 		});
 
 		commandBuffer.SetScissor({
 			.offset = { 0, 0 },
-			.extent = swapChain->GetExtent()
+			.extent = swapChain->GetDesc().extent
 		});
 
 		commandBuffer.Draw(3, 1);
@@ -268,11 +262,19 @@ int main()
 			*frameSyncObjects.inFlightFence
 		);
 
-		device.GetPresentQueue().Present(
-			{ *frameSyncObjects.renderFinishedSemaphore },
-			*swapChain,
-			swapImageIndex
-		);
+		try
+		{
+			device.GetPresentQueue().Present(
+				{ *frameSyncObjects.renderFinishedSemaphore },
+				*swapChain,
+				swapImageIndex
+			);
+		}
+		catch (vks::OutOfDateSwapChain)
+		{
+			recreateSwapChain();
+			continue;
+		}
 
 		currentFrameIndex = (currentFrameIndex + 1) % k_maxFramesInFlight;
 	}
@@ -283,26 +285,21 @@ int main()
 	// To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window.
 	device.WaitIdle();
 
-	for (uint8_t i = 0; i < k_maxFramesInFlight; ++i)
-	{
-		frameSyncObjectsArray[i].imageAvailableSemaphore.reset();
-		frameSyncObjectsArray[i].renderFinishedSemaphore.reset();
-		frameSyncObjectsArray[i].inFlightFence.reset();
-	}
+	return EXIT_SUCCESS;
+}
 
-	commandPool.reset();
-	framebuffers.clear();
-	renderPass.reset();
-	graphicsPipeline.reset();
-	fragmentModule.reset();
-	vertexModule.reset();
-	swapChain.reset();
-	deviceManager.reset();
-	surface.reset();
-	instance.reset();
+int main()
+{
+	glfwInit();
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+	GLFWwindow* window = glfwCreateWindow(800, 600, "vulkan-sandbox", nullptr, nullptr);
+
+	int exitCode = RunVulkan(window);
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
 
-	return EXIT_SUCCESS;
+	return exitCode;
 }

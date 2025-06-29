@@ -32,7 +32,6 @@ namespace vks
 		SwapChain(
 			Device& p_device,
 			VkSurfaceKHR p_surface,
-			VkExtent2D p_extent,
 			const utils::SwapChainOptimalConfig& p_desc
 		);
 
@@ -67,11 +66,6 @@ namespace vks
 		const utils::SwapChainOptimalConfig& GetDesc() const;
 
 		/**
-		* Returns the swap chain extent
-		*/
-		VkExtent2D GetExtent() const;
-
-		/**
 		* Create framebuffers for each image
 		*/
 		std::vector<vks::Framebuffer> CreateFramebuffers(VkRenderPass p_renderPass);
@@ -79,7 +73,6 @@ namespace vks
 	private:
 		Device& m_device;
 		utils::SwapChainOptimalConfig m_desc;
-		VkExtent2D m_extent;
 		std::vector<VkImage> m_images;
 		std::vector<VkImageView> m_imageViews;
 		VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
