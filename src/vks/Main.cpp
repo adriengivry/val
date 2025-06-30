@@ -46,6 +46,17 @@
 
 namespace
 {
+	struct FrameData
+	{
+		vks::CommandBuffer& commandBuffer;
+		vks::Framebuffer& framebuffer;
+		vks::Buffer& ubo;
+		vks::DescriptorSet& descriptorSet;
+		std::unique_ptr<vks::sync::Semaphore> imageAvailableSemaphore;
+		std::unique_ptr<vks::sync::Semaphore> renderFinishedSemaphore;
+		std::unique_ptr<vks::sync::Fence> inFlightFence;
+	};
+
 	struct Vertex
 	{
 		glm::vec2 pos;
@@ -109,24 +120,39 @@ namespace
 		alignas(16) glm::mat4 view;
 		alignas(16) glm::mat4 proj;
 	};
+
+	VkExtent2D GetWindowSize(GLFWwindow* p_window)
+	{
+		int width, height;
+		glfwGetFramebufferSize(p_window, &width, &height);
+		return {
+			static_cast<uint32_t>(width),
+			static_cast<uint32_t>(height)
+		};
+	}
+
+	std::vector<std::string> GetGlfwRequiredExtensions()
+	{
+		uint32_t glfwExtensionCount = 0;
+		const char** glfwExtensions;
+		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+		std::vector<std::string> requiredExtensions;
+		requiredExtensions.reserve(glfwExtensionCount);
+		for (uint32_t i = 0; i < glfwExtensionCount; ++i)
+		{
+			requiredExtensions.push_back(glfwExtensions[i]);
+		}
+
+		return requiredExtensions;
+	}
 }
 
 int RunVulkan(GLFWwindow* window)
 {
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-	std::vector<std::string> requiredExtensions;
-	requiredExtensions.reserve(glfwExtensionCount);
-	for (uint32_t i = 0; i < glfwExtensionCount; ++i)
-	{
-		requiredExtensions.push_back(glfwExtensions[i]);
-	}
-
 	std::unique_ptr<vks::Instance> instance = std::make_unique<vks::Instance>(
 		vks::InstanceDesc{
-			.requiredExtensions = requiredExtensions
+			.requiredExtensions = GetGlfwRequiredExtensions()
 		}
 	);
 
@@ -226,19 +252,10 @@ int RunVulkan(GLFWwindow* window)
 		})
 	);
 
-	// Can be outside of the render loop, since the window is marked as non-resizable.
-	// If this were to change, this should be evaluated each frame, and the swap chain would
-	// need to be recreated.
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-
 	// Doesn't change even when the swap chain is recreated
 	vks::utils::SwapChainOptimalConfig swapChainOptimalConfig = vks::utils::SwapChainUtils::CalculateSwapChainOptimalConfig(
 		device.GetSwapChainSupportDetails(),
-		VkExtent2D{
-			static_cast<uint32_t>(width),
-			static_cast<uint32_t>(height)
-		}
+		GetWindowSize(window)
 	);
 
 	std::unique_ptr<vks::RenderPass> renderPass = std::make_unique<vks::RenderPass>(
@@ -284,7 +301,7 @@ int RunVulkan(GLFWwindow* window)
 	}
 
 	std::unique_ptr<vks::DescriptorPool> descriptorPool = std::make_unique<vks::DescriptorPool>(device);
-	std::vector<std::reference_wrapper<vks::DescriptorSet>> descriptorSets = descriptorPool->AllocateDescriptorSets(*descriptorSetLayout, 2);
+	std::vector<std::reference_wrapper<vks::DescriptorSet>> descriptorSets = descriptorPool->AllocateDescriptorSets(*descriptorSetLayout, k_maxFramesInFlight);
 
 	for (size_t i = 0; i < k_maxFramesInFlight; i++)
 	{
@@ -312,42 +329,38 @@ int RunVulkan(GLFWwindow* window)
 	hostVertexBuffer->Deallocate();
 	hostIndexBuffer->Deallocate();
 
-	struct FrameSyncObjects
-	{
-		std::unique_ptr<vks::sync::Semaphore> imageAvailableSemaphore;
-		std::unique_ptr<vks::sync::Semaphore> renderFinishedSemaphore;
-		std::unique_ptr<vks::sync::Fence> inFlightFence;
-	};
-
-	std::array<FrameSyncObjects, k_maxFramesInFlight> frameSyncObjectsArray;
+	std::vector<FrameData> frameDataArray;
+	frameDataArray.reserve(k_maxFramesInFlight);
 	for (uint8_t i = 0; i < k_maxFramesInFlight; ++i)
 	{
-		frameSyncObjectsArray[i].imageAvailableSemaphore = std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice());
-		frameSyncObjectsArray[i].renderFinishedSemaphore = std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice());
-		frameSyncObjectsArray[i].inFlightFence = std::make_unique<vks::sync::Fence>(device.GetLogicalDevice(), true);
+		frameDataArray.emplace_back(
+			commandBuffers[i],
+			framebuffers[i],
+			ubos[i],
+			descriptorSets[i],
+			std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice()),
+			std::make_unique<vks::sync::Semaphore>(device.GetLogicalDevice()),
+			std::make_unique<vks::sync::Fence>(device.GetLogicalDevice(), true)
+		);
 	}
 
 	uint32_t swapImageIndex = 0;
 
 	auto recreateSwapChain = [&] {
-		int width = 0, height = 0;
-		glfwGetFramebufferSize(window, &width, &height);
+		VkExtent2D windowSize{ 0, 0 };
 
 		// To handle when the window is minimized, since 0 isn't a valid size for a swap chain
-		while (width == 0 || height == 0)
+		while (windowSize.width == 0 || windowSize.height == 0)
 		{
-			glfwGetFramebufferSize(window, &width, &height);
+			windowSize = GetWindowSize(window);
 			glfwWaitEvents();
 		}
-
+		
 		device.QuerySwapChainDetails();
 
 		swapChainOptimalConfig = vks::utils::SwapChainUtils::CalculateSwapChainOptimalConfig(
 			device.GetSwapChainSupportDetails(),
-			VkExtent2D{
-				static_cast<uint32_t>(width),
-				static_cast<uint32_t>(height)
-			}
+			windowSize
 		);
 
 		device.WaitIdle();
@@ -370,13 +383,13 @@ int RunVulkan(GLFWwindow* window)
 		glfwPollEvents();
 
 		vks::CommandBuffer& commandBuffer = commandBuffers[currentFrameIndex].get();
-		FrameSyncObjects& frameSyncObjects = frameSyncObjectsArray[currentFrameIndex];
+		FrameData& frameData = frameDataArray[currentFrameIndex];
 
-		device.WaitForFences({ *frameSyncObjects.inFlightFence });
+		device.WaitForFences({ *frameData.inFlightFence });
 
 		try
 		{
-			uint32_t swapImageIndex = swapChain->AcquireNextImage(*frameSyncObjects.imageAvailableSemaphore);
+			uint32_t swapImageIndex = swapChain->AcquireNextImage(*frameData.imageAvailableSemaphore);
 		}
 		catch (vks::OutOfDateSwapChain)
 		{
@@ -384,7 +397,7 @@ int RunVulkan(GLFWwindow* window)
 			continue;
 		}
 
-		device.ResetFences({ *frameSyncObjects.inFlightFence });
+		device.ResetFences({ *frameData.inFlightFence });
 
 		const float time = static_cast<float>(glfwGetTime());
 
@@ -400,14 +413,14 @@ int RunVulkan(GLFWwindow* window)
 		// If you don't do this, then the image will be rendered upside down.
 		uboData.proj[1][1] *= -1;
 
-		ubos[currentFrameIndex].Upload(&uboData);
+		frameData.ubo.Upload(&uboData);
 
 		commandBuffer.Reset();
 		commandBuffer.Begin();
 
 		commandBuffer.BeginRenderPass(
 			renderPass->GetHandle(),
-			framebuffers[swapImageIndex].GetHandle(),
+			frameData.framebuffer.GetHandle(),
 			swapChain->GetDesc().extent
 		);
 
@@ -442,7 +455,7 @@ int RunVulkan(GLFWwindow* window)
 		);
 
 		commandBuffer.BindDescriptorSets(
-			std::to_array({ std::ref(descriptorSets[currentFrameIndex]) }),
+			std::to_array({ std::ref(frameData.descriptorSet) }),
 			graphicsPipeline->GetLayout()
 		);
 
@@ -453,15 +466,15 @@ int RunVulkan(GLFWwindow* window)
 
 		device.GetGraphicsQueue().Submit(
 			{ commandBuffer },
-			{ *frameSyncObjects.imageAvailableSemaphore },
-			{ *frameSyncObjects.renderFinishedSemaphore },
-			*frameSyncObjects.inFlightFence
+			{ *frameData.imageAvailableSemaphore },
+			{ *frameData.renderFinishedSemaphore },
+			* frameData.inFlightFence
 		);
 
 		try
 		{
 			device.GetPresentQueue().Present(
-				{ *frameSyncObjects.renderFinishedSemaphore },
+				{ *frameData.renderFinishedSemaphore },
 				*swapChain,
 				swapImageIndex
 			);
