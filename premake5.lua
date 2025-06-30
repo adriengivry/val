@@ -1,7 +1,3 @@
-outputdir = "%{wks.location}/bin/"
-objoutdir = "%{wks.location}/obj/"
-depsdir = "%{wks.location}/deps/"
-
 VULKAN_SDK = os.getenv("VK_SDK_PATH")
 
 -- Check if VULKAN_SDK is set to a valid path
@@ -11,49 +7,23 @@ end
 
 print("Vulkan SDK Path: " .. VULKAN_SDK)
 
-workspace "vulkan-sandbox"
-	configurations { "Debug", "Release" }
-	platforms { "x64" }
-	startproject "vulkan-sandbox"
-
-group "deps"
-    include "deps/_glm"
-    include "deps/_glfw"
-group ""
-
-    include "shaders/"
-
-project "vulkan-sandbox"
-    kind "ConsoleApp"
+project "val"
+    kind "StaticLib"
     language "C++"
     cppdialect "C++20"
-    targetdir (outputdir .. "%{cfg.buildcfg}/%{prj.name}")
-	objdir (objoutdir .. "%{cfg.buildcfg}/%{prj.name}")
-	debugdir (outputdir .. "%{cfg.buildcfg}/%{prj.name}")
+    targetdir ("bin/%{cfg.buildcfg}/%{prj.name}")
+	objdir ("obj/%{cfg.buildcfg}/%{prj.name}")
 
     files { "include/**.h", "src/**.cpp" }
 
     includedirs {
 		"%{VULKAN_SDK}/include",
-        "deps/_glfw/glfw/include",
-        "deps/_glm/glm",
         "include"
     }
 
     links {
 		"%{VULKAN_SDK}/lib/vulkan-1.lib",
-        "glfw",
-        "glm",
-        "shaders"
     }
-
-    -- Copy assets folder to output directory
-    buildaction "Custom"
-    buildmessage "Copying assets to output folder..."
-    buildcommands {
-        "{COPYDIR} %{wks.location}assets %{cfg.targetdir}/assets"
-    }
-    buildoutputs { "%{cfg.targetdir}/assets_copied.stamp" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
