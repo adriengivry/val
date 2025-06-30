@@ -83,6 +83,7 @@ namespace vks
 		{
 			output.emplace_back(
 				m_descriptorSets.emplace_back(DescriptorSet{
+					m_device.GetLogicalDevice(),
 					allocatedDescriptorSet
 				})
 			);

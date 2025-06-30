@@ -288,30 +288,9 @@ int RunVulkan(GLFWwindow* window)
 
 	for (size_t i = 0; i < k_maxFramesInFlight; i++)
 	{
-		VkDescriptorBufferInfo bufferInfo{
-			.buffer = ubos[i].GetHandle(),
-			.offset = 0,
-			.range = sizeof(UniformBufferObject)
-		};
-
-		VkWriteDescriptorSet descriptorWrite{
-			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-			.dstSet = descriptorSets[i].get().GetHandle(),
-			.dstBinding = 0,
-			.dstArrayElement = 0,
-			.descriptorCount = 1,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.pImageInfo = nullptr, // Optional
-			.pBufferInfo = &bufferInfo,
-			.pTexelBufferView = nullptr, // Optional
-		};
-
-		vkUpdateDescriptorSets(
-			device.GetLogicalDevice(),
-			1,
-			&descriptorWrite,
-			0,
-			nullptr
+		descriptorSets[i].get().Write(
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			std::to_array({ std::ref(ubos[i]) })
 		);
 	}
 
