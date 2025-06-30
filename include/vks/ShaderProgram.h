@@ -19,7 +19,7 @@ namespace vks
 		/**
 		* Creates a shader program
 		*/
-		ShaderProgram(std::span<const ShaderStage> p_stages);
+		ShaderProgram(std::initializer_list<const std::reference_wrapper<ShaderStage>> p_stages);
 
 		/**
 		* Destroys the shader program
@@ -32,6 +32,6 @@ namespace vks
 		std::vector<VkPipelineShaderStageCreateInfo> GetAssembledStages();
 
 	private:
-		std::span<const ShaderStage> m_stages;
+		std::vector<VkPipelineShaderStageCreateInfo> m_assembledStages;
 	};
 }

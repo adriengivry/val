@@ -11,19 +11,18 @@
 
 namespace vks
 {
-	ShaderProgram::ShaderProgram(std::span<const ShaderStage> p_stages) :
-		m_stages(p_stages)
+	ShaderProgram::ShaderProgram(std::initializer_list<const std::reference_wrapper<ShaderStage>> p_stages)
 	{
+		m_assembledStages.reserve(p_stages.size());
+		for (auto& stage : p_stages)
+		{
+			m_assembledStages.push_back(stage.get().GetCreateInfo());
+		}
 	}
 
 	std::vector<VkPipelineShaderStageCreateInfo> ShaderProgram::GetAssembledStages()
 	{
-		std::vector<VkPipelineShaderStageCreateInfo> assembledStages;
-		assembledStages.reserve(m_stages.size());
-		for (auto& stage : m_stages)
-		{
-			assembledStages.push_back(stage.GetCreateInfo());
-		}
-		return assembledStages;
+		
+		return m_assembledStages;
 	}
 }

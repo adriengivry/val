@@ -111,7 +111,8 @@ namespace
 	});
 
 	constexpr auto k_indices = std::to_array<uint32_t>({
-		0, 1, 2, 2, 3, 0
+		0, 1, 2,
+		2, 3, 0
 	});
 
 	struct UniformBufferObject
@@ -146,64 +147,68 @@ namespace
 
 		return requiredExtensions;
 	}
+
+	vks::SurfaceDesc GetGlfwSurfaceDesc(GLFWwindow* p_window)
+	{
+#if defined(_WIN32) || defined(_WIN64)
+		return {
+			.windowHandle = glfwGetWin32Window(p_window),
+			.instanceHandle = GetModuleHandle(nullptr)
+		};
+#else
+#error Only supporting Windows for now!
+#endif
+	}
 }
 
 int RunVulkan(GLFWwindow* window)
 {
-	std::unique_ptr<vks::Instance> instance = std::make_unique<vks::Instance>(
+	// Create instance
+	auto instance = std::make_unique<vks::Instance>(
 		vks::InstanceDesc{
 			.requiredExtensions = GetGlfwRequiredExtensions()
 		}
 	);
 
-	// Instead of handling the surface creation inside of vks::Instance, we could create a platform-agnostic vulkan instead just like that:
-	/*
-	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create window surface!");
-	}
-	*/
-	// But since we dont want to assume that the user is using GLFW, it might be better to have an actual code path to create a surface for
-	// each supported platform.
-	std::unique_ptr<vks::Surface> surface = std::make_unique<vks::Surface>(
+	// Create surface
+	auto surface = std::make_unique<vks::Surface>(
 		instance->GetHandle(),
-#if defined(_WIN32) || defined(_WIN64)
-		vks::SurfaceDesc{
-			.windowHandle = glfwGetWin32Window(window),
-			.instanceHandle = GetModuleHandle(nullptr)
-#else
-#error Only supporting Windows for now!
-#endif
-	});
+		GetGlfwSurfaceDesc(window)
+	);
 
 	assert((surface && surface->GetHandle() != VK_NULL_HANDLE) && "invalid surface handle, cannot continue since headless isn't supported");
 
-	std::unique_ptr<vks::utils::DeviceManager> deviceManager = std::make_unique<vks::utils::DeviceManager>(
+	// Create device manager so we can find a suitable device
+	auto deviceManager = std::make_unique<vks::utils::DeviceManager>(
 		instance->GetHandle(),
 		surface->GetHandle()
 	);
 
+	// Retrieve the most suited device
 	vks::Device& device = deviceManager->GetSuitableDevice();
 	device.CreateLogicalDevice(instance->GetValidationLayers());
 
-	std::unique_ptr<vks::ShaderModule> vertexModule = std::make_unique<vks::ShaderModule>(
+	// Create vertex module
+	auto vertexModule = std::make_unique<vks::ShaderModule>(
 		device.GetLogicalDevice(),
 		vks::utils::ShaderUtils::ReadShaderFile("assets/shaders/foo.vert.spv")
 	);
 
-	std::unique_ptr<vks::ShaderModule> fragmentModule = std::make_unique<vks::ShaderModule>(
+	// Create fragment module
+	auto fragmentModule = std::make_unique<vks::ShaderModule>(
 		device.GetLogicalDevice(),
 		vks::utils::ShaderUtils::ReadShaderFile("assets/shaders/foo.frag.spv")
 	);
 
+	// Create shader program
 	vks::ShaderStage vertexStage(*vertexModule, VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT);
 	vks::ShaderStage fragmentStage(*fragmentModule, VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT);
-	// TODO: Double check we are not duplicating the shader program, but passing a ref
-	vks::ShaderProgram program(std::to_array({
+	vks::ShaderProgram program({
 		vertexStage,
 		fragmentStage
-	}));
+	});
 
-	std::unique_ptr<vks::Buffer> hostVertexBuffer = std::make_unique<vks::Buffer>(
+	auto hostVertexBuffer = std::make_unique<vks::Buffer>(
 		device,
 		vks::BufferDesc{
 			.size = sizeof(k_vertices),
@@ -232,7 +237,7 @@ int RunVulkan(GLFWwindow* window)
 	);
 	deviceVertexBuffer->Allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	std::unique_ptr<vks::Buffer> deviceIndexBuffer = std::make_unique<vks::Buffer>(
+	auto deviceIndexBuffer = std::make_unique<vks::Buffer>(
 		device,
 		vks::BufferDesc{
 			.size = sizeof(k_indices),
@@ -241,7 +246,7 @@ int RunVulkan(GLFWwindow* window)
 	);
 	deviceIndexBuffer->Allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	std::unique_ptr<vks::DescriptorSetLayout> descriptorSetLayout = std::make_unique<vks::DescriptorSetLayout>(
+	auto descriptorSetLayout = std::make_unique<vks::DescriptorSetLayout>(
 		device.GetLogicalDevice(),
 		std::to_array<vks::DescriptorSetLayoutBinding>({
 			{
@@ -258,12 +263,12 @@ int RunVulkan(GLFWwindow* window)
 		GetWindowSize(window)
 	);
 
-	std::unique_ptr<vks::RenderPass> renderPass = std::make_unique<vks::RenderPass>(
+	auto renderPass = std::make_unique<vks::RenderPass>(
 		device.GetLogicalDevice(),
 		swapChainOptimalConfig.surfaceFormat.format
 	);
 
-	std::unique_ptr<vks::GraphicsPipeline> graphicsPipeline = std::make_unique<vks::GraphicsPipeline>(
+	auto graphicsPipeline = std::make_unique<vks::GraphicsPipeline>(
 		device.GetLogicalDevice(),
 		vks::GraphicsPipelineDesc{
 			.program = program,
@@ -274,13 +279,13 @@ int RunVulkan(GLFWwindow* window)
 		}
 	);
 
-	std::unique_ptr<vks::SwapChain> swapChain = std::make_unique<vks::SwapChain>(
+	auto swapChain = std::make_unique<vks::SwapChain>(
 		device,
 		surface->GetHandle(),
 		swapChainOptimalConfig
 	);
 
-	std::vector<vks::Framebuffer> framebuffers = swapChain->CreateFramebuffers(renderPass->GetHandle());
+	auto framebuffers = swapChain->CreateFramebuffers(renderPass->GetHandle());
 
 	const uint8_t k_maxFramesInFlight = 2;
 	uint8_t currentFrameIndex = 0;
@@ -300,8 +305,13 @@ int RunVulkan(GLFWwindow* window)
 		ubo.Allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	}
 
-	std::unique_ptr<vks::DescriptorPool> descriptorPool = std::make_unique<vks::DescriptorPool>(device);
-	std::vector<std::reference_wrapper<vks::DescriptorSet>> descriptorSets = descriptorPool->AllocateDescriptorSets(*descriptorSetLayout, k_maxFramesInFlight);
+	auto descriptorPool = std::make_unique<vks::DescriptorPool>(device);
+
+	std::vector<std::reference_wrapper<vks::DescriptorSet>> descriptorSets =
+		descriptorPool->AllocateDescriptorSets(
+			*descriptorSetLayout,
+			k_maxFramesInFlight
+		);
 
 	for (size_t i = 0; i < k_maxFramesInFlight; i++)
 	{
@@ -311,7 +321,7 @@ int RunVulkan(GLFWwindow* window)
 		);
 	}
 
-	std::unique_ptr<vks::CommandPool> commandPool = std::make_unique<vks::CommandPool>(device);
+	auto commandPool = std::make_unique<vks::CommandPool>(device);
 	std::vector<std::reference_wrapper<vks::CommandBuffer>> transferCommandBuffers = commandPool->AllocateCommandBuffers(1);
 	std::vector<std::reference_wrapper<vks::CommandBuffer>> commandBuffers = commandPool->AllocateCommandBuffers(k_maxFramesInFlight);
 
