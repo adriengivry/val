@@ -451,7 +451,7 @@ int RunVulkan(GLFWwindow* window)
 
 		commandBuffer.BeginRenderPass(
 			renderPass->GetHandle(),
-			framebuffers[swapImageIndex].GetHandle(),
+			framebuffer.GetHandle(),
 			swapChain->GetDesc().extent
 		);
 
