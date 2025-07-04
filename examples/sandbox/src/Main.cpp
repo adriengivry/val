@@ -318,7 +318,7 @@ int RunVulkan(GLFWwindow* window)
 	}
 
 	// Create a descriptor pool to allocate descriptor sets
-	auto descriptorPool = std::make_unique<val::DescriptorPool>(device);
+	auto descriptorPool = std::make_unique<val::DescriptorPool>(device, k_maxFramesInFlight);
 
 	// Create a descriptor set for each frame
 	std::vector<std::reference_wrapper<val::DescriptorSet>> descriptorSets = descriptorPool->AllocateDescriptorSets(

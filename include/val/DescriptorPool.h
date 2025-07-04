@@ -23,7 +23,7 @@ namespace val
 		/**
 		* Creates a descriptor pool
 		*/
-		DescriptorPool(Device& p_device);
+		DescriptorPool(Device& p_device, uint32_t p_maxSetCount);
 
 		/**
 		* Destroys the descriptor pool

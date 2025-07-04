@@ -12,25 +12,21 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace
-{
-	// TODO: Remove
-	constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-}
-
 namespace val
 {
-	DescriptorPool::DescriptorPool(val::Device& p_device) :
+	DescriptorPool::DescriptorPool(val::Device& p_device, uint32_t p_maxSetCount) :
 		m_device(p_device)
 	{
+		assert(p_maxSetCount > 0 && "Max set count must be greater than 0");
+
 		VkDescriptorPoolSize poolSize{
 			.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+			.descriptorCount = 1
 		};
 
 		VkDescriptorPoolCreateInfo createInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+			.maxSets = static_cast<uint32_t>(p_maxSetCount),
 			.poolSizeCount = 1,
 			.pPoolSizes = &poolSize,
 		};
