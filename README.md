@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> *val* has been deprecated, and no further work will be done on this library. If you're looking for a thin abstraction layer over modern graphics APIs, please consider checking out [OpenRHI](https://github.com/adriengivry/orhi)
+>
+> Of course, *val* will remain available here as a read-only repository. I still believe it can be quite useful for educational purposes.
+
 # Vulkan Abstraction Layer
 
 **Vulkan Abstraction Layer** — *val* — is a lightweight, permissively licensed (MIT), cross-platform abstraction layer for the Vulkan graphics API, written in C++20.
